@@ -16,6 +16,11 @@ RUN apt-get update -y && \
     $REQUIRED_PACKAGES && \
     rm -rf /var/lib/apt/lists/*
 
+# Mount the host distribution compatible AMF runtime here later
+COPY <<-EOT /etc/ld.so.conf.d/amdgpu-pro.conf
+/opt/amdgpu-pro/lib/x86_64-linux-gnu
+EOT
+
 # Adding missing libnvrtc.so and libnvrtc-bulletins.so for Nvidia
 # https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/LICENSE.txt
 RUN <<_ADD_NVRTC

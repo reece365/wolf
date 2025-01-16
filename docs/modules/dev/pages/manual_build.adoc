@@ -74,8 +74,18 @@ Please refer to `docker/gstreamer.Dockerfile` for an up-to-date list of paramete
 .Build gstreamer
 [source,bash]
 ....
-git clone -b 1.24.6 --depth=1 https://gitlab.freedesktop.org/gstreamer/gstreamer.git
+mkdir gstreamer
 cd gstreamer
+git init
+git remote add origin https://gitlab.freedesktop.org/gstreamer/gstreamer.git
+# Fetch a commit roughly 1.25.1 until it is released
+git fetch --depth 1 origin 8f5caeb86d38aa66107ae83181b3eb1872be7875
+git checkout FETCH_HEAD
+
+# Fetch a patch to apply to enable AMF support
+curl -fsSL -o 5811.patch https://gist.github.com/kode54/e760de259bcd6a690a98c24c2bfe84a3/raw/effe9e4240719734e7b2ccc5e72dba6446169f6a/5811.patch
+patch -Np1 -i 5811.patch
+
 # Setup a place where we'll put the libraries
 mkdir -p $HOME/gstreamer/include -p $HOME/gstreamer/usr/local/include
 meson setup --prefix=$HOME/gstreamer \
@@ -105,6 +115,7 @@ meson setup --prefix=$HOME/gstreamer \
 	-Dgst-plugins-bad:qsv=enabled \
 	-Dgst-plugins-bad:aom=enabled \
 	-Dgst-plugin-bad:nvcodec=enabled  \
+	-Dgst-plugins-bad:amfcodec=enabled \
 	-Dvaapi=enabled \
 	-Dgstreamer-vaapi:x11=disabled \
 	build
