@@ -51,6 +51,32 @@ void UnixSocketServer::endpoint_PairedClients(const HTTPRequest &req, std::share
   send_http(socket, 200, rfl::json::write(res));
 }
 
+void UnixSocketServer::endpoint_UnpairClient(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket) {
+    try {
+        auto payload = rfl::json::read<UnpairClientRequest>(req.body);
+        if (!payload) {
+            auto res = GenericErrorResponse{.error = "Invalid request format"};
+            send_http(socket, 400, rfl::json::write(res));
+            return;
+        }
+
+        auto client = state::get_client_by_id(this->state_->app_state->config, std::stoul(payload->client_id));
+        if (!client) {
+            auto res = GenericErrorResponse{.error = "Client not found"};
+            send_http(socket, 404, rfl::json::write(res));
+            return;
+        }
+
+        state::unpair(this->state_->app_state->config, *client);
+
+        auto res = GenericSuccessResponse{.success = true};
+        send_http(socket, 200, rfl::json::write(res));
+    } catch (const std::exception &e) {
+        auto res = GenericErrorResponse{.error = e.what()};
+        send_http(socket, 500, rfl::json::write(res));
+    }
+}
+
 void UnixSocketServer::endpoint_Apps(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket) {
   auto res = AppListResponse{.success = true};
   auto apps = state_->app_state->config->apps->load();

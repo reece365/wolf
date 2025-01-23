@@ -17,6 +17,11 @@ struct PairRequest {
   rfl::Description<"The PIN created by the remote Moonlight client", std::string> pin;
 };
 
+struct UnpairClientRequest {
+  std::string client_id;
+  rfl::Description<"The client ID to unpair", std::string> client_id;
+};
+
 struct GenericSuccessResponse {
   bool success = true;
 };
@@ -114,7 +119,7 @@ private:
   void endpoint_Apps(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
   void endpoint_AddApp(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
   void endpoint_RemoveApp(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
-
+  void endpoint_UnpairClient(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
   void endpoint_StreamSessions(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
   void endpoint_StreamSessionAdd(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
   void endpoint_StreamSessionStart(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
