@@ -64,6 +64,10 @@ curl localhost:8080/api/v1/openapi-schema
 <script
   id="api-reference"
   type="application/json">
+  {
+    darkMode: false,
+    hideDarkModeToggle: true
+  }
 include::{includedir}/spec.json[]
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
