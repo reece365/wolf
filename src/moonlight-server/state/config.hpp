@@ -69,7 +69,7 @@ inline std::size_t get_client_id(const PairedClient &current_client) {
   return std::hash<std::string>{}(current_client.client_cert);
 }
 
-inline std::optional<PairedClient> get_client_by_id(const Config &cfg, std::size_t client_id) {
+inline std::optional<PairedClient> get_client_by_id(const Config &cfg, const std::string &client_id) {
   auto paired_clients = cfg.paired_clients->load();
   auto search_result =
       std::find_if(paired_clients->begin(), paired_clients->end(), [client_id](const PairedClient &pair_client) {
@@ -138,4 +138,10 @@ static moonlight::control::pkts::CONTROLLER_TYPE get_controller_type(const Contr
   }
   return moonlight::control::pkts::CONTROLLER_TYPE::AUTO;
 }
+
+std::optional<PairedClient> get_client_by_id(const Config &cfg, const std::string &client_id);
+void update_client_settings(const Config &cfg, 
+                          const std::string &client_id,
+                          const std::string &new_folder,
+                          const wolf::config::ClientSettings &new_settings);
 } // namespace state

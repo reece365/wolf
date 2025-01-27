@@ -45,6 +45,21 @@ struct PairedClientsResponse {
   std::vector<PairedClient> clients;
 };
 
+struct PartialClientSettings {
+    std::optional<uint> run_uid;
+    std::optional<uint> run_gid;
+    std::optional<std::vector<wolf::config::ControllerType>> controllers_override;
+    std::optional<float> mouse_acceleration;
+    std::optional<float> v_scroll_acceleration;
+    std::optional<float> h_scroll_acceleration;
+};
+
+struct UpdateClientSettingsRequest {
+  rfl::Description<"The client ID to identify the client (derived from certificate)", std::string> client_id;
+  rfl::Description<"New app state folder path (optional)", std::optional<std::string>> app_state_folder;
+  rfl::Description<"Client settings to update (only specified fields will be updated)", PartialClientSettings> settings;
+};
+
 struct AppListResponse {
   bool success = true;
   std::vector<rfl::Reflector<wolf::core::events::App>::ReflType> apps;
@@ -127,6 +142,8 @@ private:
   void endpoint_StreamSessionHandleInput(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
 
   void endpoint_RunnerStart(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
+
+  void endpoint_UpdateClientSettings(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket);
 
   void sse_broadcast(const std::string &payload);
   void sse_keepalive(const boost::system::error_code &e);

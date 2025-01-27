@@ -75,6 +75,21 @@ UnixSocketServer::UnixSocketServer(boost::asio::io_context &io_context,
                        .handler = [this](auto req, auto socket) { endpoint_PairedClients(req, socket); },
                    });
 
+  state_->http.add(HTTPMethod::POST,
+                "/api/v1/clients/settings",
+                {
+                    .summary = "Update client settings",
+                    .description = "Update a client's settings including app state folder and client-specific settings",
+                    .request_description = APIDescription{.json_schema = rfl::json::to_schema<UpdateClientSettingsRequest>()},
+                    .response_description = {
+                        {200, {.json_schema = rfl::json::to_schema<GenericSuccessResponse>()}},
+                        {400, {.json_schema = rfl::json::to_schema<GenericErrorResponse>()}},
+                        {404, {.json_schema = rfl::json::to_schema<GenericErrorResponse>()}},
+                        {500, {.json_schema = rfl::json::to_schema<GenericErrorResponse>()}}
+                    },
+                    .handler = [this](auto req, auto socket) { endpoint_UpdateClientSettings(req, socket); },
+                });
+
   /**
    * Apps API
    */

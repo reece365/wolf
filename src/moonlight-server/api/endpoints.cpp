@@ -306,4 +306,36 @@ void UnixSocketServer::endpoint_RunnerStart(const wolf::api::HTTPRequest &req, s
   }
 }
 
+void UnixSocketServer::endpoint_UpdateClientSettings(const HTTPRequest &req, std::shared_ptr<UnixSocket> socket) {
+    try {
+        auto payload_result = rfl::json::read<UpdateClientSettingsRequest>(req.body);
+        if (!payload_result) {
+            auto res = GenericErrorResponse{.error = "Invalid request format"};
+            send_http(socket, 400, rfl::json::write(res));
+            return;
+        }
+
+        const auto& payload = payload_result.value();
+        
+        // Update the client settings
+        try {
+            state::update_client_settings(
+                this->state_->app_state->config,
+                payload.client_id.get(),
+                payload.app_state_folder.get(),
+                payload.settings.get()
+            );
+            
+            auto res = GenericSuccessResponse{.success = true};
+            send_http(socket, 200, rfl::json::write(res));
+        } catch (const std::runtime_error& e) {
+            auto res = GenericErrorResponse{.error = e.what()};
+            send_http(socket, 404, rfl::json::write(res));
+        }
+    } catch (const std::exception &e) {
+        auto res = GenericErrorResponse{.error = e.what()};
+        send_http(socket, 500, rfl::json::write(res));
+    }
+}
+
 } // namespace wolf::api
