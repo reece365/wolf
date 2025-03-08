@@ -378,6 +378,11 @@ auto setup_sessions_handlers(const immer::box<state::AppState> &app_state,
                   auto ip = sess->client_ip;
                   bool matches = ping_ev->client_ip == ip;
 
+                  if (auto client_ip = utils::get_env("WOLF_STREAM_CLIENT_IP")) {
+                    logs::log(logs::debug, "Client IP override: {}", client_ip);
+                    matches |= ip == std::string(client_ip);
+                  }
+
                   if (matches) {
                     pp.get().set_value({
                       .ip = ping_ev->client_ip,

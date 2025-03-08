@@ -2,6 +2,7 @@
 
 #include <events/events.hpp>
 #include <helpers/logger.hpp>
+#include <helpers/utils.hpp>
 #include <immer/vector.hpp>
 #include <optional>
 #include <range/v3/view.hpp>
@@ -21,6 +22,18 @@ inline std::optional<events::StreamSession> get_session_by_ip(const immer::vecto
   if (results.size() == 1) {
     return results[0];
   } else if (results.empty()) {
+    // If no sessions for specific IP, try to find wildcard
+    if (auto wildcardIP = utils::get_env("WOLF_STREAM_CLIENT_IP")) {
+      std::string ipString = wildcardIP;
+      auto newResults = sessions |                                                                                      //
+                 ranges::views::filter([&ip,&ipString](const events::StreamSession &session) { return session.ip == ipString; }) //
+                 | ranges::views::take(1)                                                                        //
+                 | ranges::to_vector;
+      if (newResults.size() == 1) {
+        return newResults[0];
+      }
+    }
+
     return {};
   } else {
     logs::log(logs::warning, "Found multiple sessions for a given IP: {}", ip);
