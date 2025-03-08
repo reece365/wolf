@@ -57,7 +57,7 @@ void wait_for_ping(
           auto server = UDP_Server(port, callback);
 
           logs::log(logs::info, "RTP server started on port: {}", port);
-          server.run(std::chrono::seconds(4));
+          server.run(std::chrono::seconds(30));
           logs::log(logs::debug, "RTP server on port: {} stopped", port);
 
         } catch (std::exception &e) {
