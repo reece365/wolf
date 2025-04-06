@@ -21,12 +21,13 @@ void run_control(int port,
                  std::chrono::milliseconds timeout = 1000ms,
                  const std::string &host_ip = "0.0.0.0");
 
-using enet_clients_map = immer::map<std::size_t, immer::box<std::shared_ptr<ENetPeer>>>;
+using enet_clients_map = immer::map<ENetPeer *, immer::box<events::StreamSession>>;
+
+std::shared_ptr<ENetPeer> to_shared_ptr(ENetPeer *peer);
 
 bool encrypt_and_send(std::string_view payload,
                       std::string_view aes_key,
-                      const immer::atom<enet_clients_map> &connected_clients,
-                      std::size_t session_id);
+                      immer::box<std::shared_ptr<ENetPeer>> connected_client);
 
 bool init();
 

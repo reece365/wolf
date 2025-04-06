@@ -16,28 +16,22 @@ using namespace std::string_literals;
 using namespace moonlight::control;
 
 std::shared_ptr<events::JoypadTypes> create_new_joypad(const events::StreamSession &session,
-                                                       const immer::atom<enet_clients_map> &connected_clients,
+                                                       immer::box<std::shared_ptr<ENetPeer>> connected_client,
                                                        int controller_number,
                                                        CONTROLLER_TYPE requested_type,
                                                        uint8_t capabilities) {
 
-  auto on_rumble_fn = ([clients = &connected_clients,
-                        controller_number,
-                        session_id = session.session_id,
-                        aes_key = session.aes_key](int low_freq, int high_freq) {
+  auto on_rumble_fn = ([connected_client, controller_number, aes_key = session.aes_key](int low_freq, int high_freq) {
     auto rumble_pkt = ControlRumblePacket{
         .header = {.type = RUMBLE_DATA, .length = sizeof(ControlRumblePacket) - sizeof(ControlPacket)},
         .controller_number = boost::endian::native_to_little((uint16_t)controller_number),
         .low_freq = boost::endian::native_to_little((uint16_t)low_freq),
         .high_freq = boost::endian::native_to_little((uint16_t)high_freq)};
     std::string plaintext = {(char *)&rumble_pkt, sizeof(rumble_pkt)};
-    encrypt_and_send(plaintext, aes_key, *clients, session_id);
+    encrypt_and_send(plaintext, aes_key, connected_client);
   });
 
-  auto on_led_fn = ([clients = &connected_clients,
-                     controller_number,
-                     session_id = session.session_id,
-                     aes_key = session.aes_key](int r, int g, int b) {
+  auto on_led_fn = ([connected_client, controller_number, aes_key = session.aes_key](int r, int g, int b) {
     auto led_pkt = ControlRGBLedPacket{
         .header{.type = RGB_LED_EVENT, .length = sizeof(ControlRGBLedPacket) - sizeof(ControlPacket)},
         .controller_number = boost::endian::native_to_little((uint16_t)controller_number),
@@ -45,19 +39,17 @@ std::shared_ptr<events::JoypadTypes> create_new_joypad(const events::StreamSessi
         .g = static_cast<uint8_t>(g),
         .b = static_cast<uint8_t>(b)};
     std::string plaintext = {(char *)&led_pkt, sizeof(led_pkt)};
-    encrypt_and_send(plaintext, aes_key, *clients, session_id);
+    encrypt_and_send(plaintext, aes_key, connected_client);
   });
 
-  auto on_adaptive_trigger_fn = ([clients = &connected_clients,
-                                  controller_number,
-                                  session_id = session.session_id,
-                                  aes_key = session.aes_key](const inputtino::PS5Joypad::TriggerEffect &effect) {
+  auto on_adaptive_trigger_fn = ([connected_client, controller_number, aes_key = session.aes_key](
+                                     const inputtino::PS5Joypad::TriggerEffect &effect) {
     auto rumble_pkt = ControlAdaptiveTriggerPacket{
         .header{.type = ADAPTIVE_TRIGGER_EVENT, .length = sizeof(ControlAdaptiveTriggerPacket) - sizeof(ControlPacket)},
         .controller_number = boost::endian::native_to_little((uint16_t)controller_number),
         .effect = effect};
     std::string plaintext = {(char *)&rumble_pkt, sizeof(rumble_pkt)};
-    encrypt_and_send(plaintext, aes_key, *clients, session_id);
+    encrypt_and_send(plaintext, aes_key, connected_client);
   });
 
   std::shared_ptr<events::JoypadTypes> new_pad;
@@ -155,7 +147,7 @@ std::shared_ptr<events::JoypadTypes> create_new_joypad(const events::StreamSessi
         .reportrate = 100,
         .type = ACCELERATION};
     std::string plaintext = {(char *)&accelerometer_pkt, sizeof(accelerometer_pkt)};
-    encrypt_and_send(plaintext, session.aes_key, connected_clients, session.session_id);
+    encrypt_and_send(plaintext, session.aes_key, connected_client);
   }
 
   if (capabilities & GYRO && final_type == wolf::config::ControllerType::PS) {
@@ -167,7 +159,7 @@ std::shared_ptr<events::JoypadTypes> create_new_joypad(const events::StreamSessi
         .reportrate = 100,
         .type = GYROSCOPE};
     std::string plaintext = {(char *)&gyro_pkt, sizeof(gyro_pkt)};
-    encrypt_and_send(plaintext, session.aes_key, connected_clients, session.session_id);
+    encrypt_and_send(plaintext, session.aes_key, connected_client);
   }
 
   session.joypads->update([&](events::JoypadList joypads) {
@@ -510,7 +502,7 @@ void pen(const PEN_PACKET &pkt, events::StreamSession &session) {
 
 void controller_arrival(const CONTROLLER_ARRIVAL_PACKET &pkt,
                         events::StreamSession &session,
-                        const immer::atom<enet_clients_map> &connected_clients) {
+                        immer::box<std::shared_ptr<ENetPeer>> connected_client) {
   auto joypads = session.joypads->load();
   if (joypads->find(pkt.controller_number)) {
     // TODO: should we replace it instead?
@@ -519,7 +511,7 @@ void controller_arrival(const CONTROLLER_ARRIVAL_PACKET &pkt,
               pkt.controller_number);
   } else {
     create_new_joypad(session,
-                      connected_clients,
+                      connected_client,
                       pkt.controller_number,
                       (CONTROLLER_TYPE)pkt.controller_type,
                       pkt.capabilities);
@@ -528,7 +520,7 @@ void controller_arrival(const CONTROLLER_ARRIVAL_PACKET &pkt,
 
 void controller_multi(const CONTROLLER_MULTI_PACKET &pkt,
                       events::StreamSession &session,
-                      const immer::atom<enet_clients_map> &connected_clients) {
+                      immer::box<std::shared_ptr<ENetPeer>> connected_client) {
   auto joypads = session.joypads->load();
   std::shared_ptr<events::JoypadTypes> selected_pad;
   if (auto joypad = joypads->find(pkt.controller_number)) {
@@ -552,7 +544,7 @@ void controller_multi(const CONTROLLER_MULTI_PACKET &pkt,
     }
   } else {
     // Old Moonlight doesn't support CONTROLLER_ARRIVAL, we create a default pad when it's first mentioned
-    selected_pad = create_new_joypad(session, connected_clients, pkt.controller_number, XBOX, ANALOG_TRIGGERS | RUMBLE);
+    selected_pad = create_new_joypad(session, connected_client, pkt.controller_number, XBOX, ANALOG_TRIGGERS | RUMBLE);
   }
   std::visit(
       [pkt](inputtino::Joypad &pad) {
@@ -656,7 +648,7 @@ void controller_battery(const CONTROLLER_BATTERY_PACKET &pkt, events::StreamSess
 }
 
 void handle_input(events::StreamSession &session,
-                  const immer::atom<enet_clients_map> &connected_clients,
+                  immer::box<std::shared_ptr<ENetPeer>> connected_client,
                   INPUT_PKT *pkt) {
   switch (pkt->type) {
   case MOUSE_MOVE_REL: {
@@ -718,13 +710,13 @@ void handle_input(events::StreamSession &session,
   case CONTROLLER_ARRIVAL: {
     logs::log(logs::trace, "[INPUT] Received input of type: CONTROLLER_ARRIVAL");
     auto new_controller = static_cast<CONTROLLER_ARRIVAL_PACKET *>(pkt);
-    controller_arrival(*new_controller, session, connected_clients);
+    controller_arrival(*new_controller, session, connected_client);
     break;
   }
   case CONTROLLER_MULTI: {
     logs::log(logs::trace, "[INPUT] Received input of type: CONTROLLER_MULTI");
     auto controller_pkt = static_cast<CONTROLLER_MULTI_PACKET *>(pkt);
-    controller_multi(*controller_pkt, session, connected_clients);
+    controller_multi(*controller_pkt, session, connected_client);
     break;
   }
   case CONTROLLER_TOUCH: {
