@@ -1,10 +1,8 @@
 #pragma once
 
-#include <events/events.hpp>
-
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
-#include <helpers/logger.hpp>
+#include <events/events.hpp>
 
 namespace rtp {
 
@@ -29,24 +27,19 @@ using on_rtp_ping_fn = std::function<void(const RTPPingEvent &)>;
  */
 class UDP_Server : public boost::enable_shared_from_this<UDP_Server> {
 public:
-  UDP_Server(unsigned short port, const on_rtp_ping_fn &callback);
-
-  ~UDP_Server();
-
-  void run(std::chrono::milliseconds timeout);
+  UDP_Server(udp::socket &socket, const on_rtp_ping_fn &callback) : socket_(std::move(socket)), callback(callback) {
+    start_receive();
+  };
 
 private:
   void start_receive();
   void handle_receive(const boost::system::error_code &error, std::size_t /*bytes_transferred*/);
 
-  boost::asio::io_context io_context;
   udp::socket socket_;
   udp::endpoint remote_endpoint_;
   boost::array<char, 2048> recv_buffer_{};
   on_rtp_ping_fn callback;
 };
-
-void wait_for_ping(unsigned short port, const on_rtp_ping_fn &callback);
 
 void start_rtp_ping(unsigned short video_port,
                     unsigned short audio_port,
