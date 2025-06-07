@@ -1,0 +1,765 @@
+From 94fffd32ccd3b3f6f6879547e713a16df34017d1 Mon Sep 17 00:00:00 2001
+From: Andrei Khon <andrewkhon98@gmail.com>
+Date: Tue, 31 Oct 2023 16:51:21 +0100
+Subject: [PATCH] amfcodec: Add linux support
+
+---
+ .../sys/amfcodec/gstamfav1enc.cpp             |  17 ++-
+ .../sys/amfcodec/gstamfav1enc.h               |  15 ++-
+ .../sys/amfcodec/gstamfencoder.cpp            | 112 ++++++++++++++++--
+ .../sys/amfcodec/gstamfh264enc.cpp            |  15 ++-
+ .../sys/amfcodec/gstamfh264enc.h              |  15 ++-
+ .../sys/amfcodec/gstamfh265enc.cpp            |  16 ++-
+ .../sys/amfcodec/gstamfh265enc.h              |  14 ++-
+ .../gst-plugins-bad/sys/amfcodec/meson.build  |   6 -
+ .../gst-plugins-bad/sys/amfcodec/plugin.cpp   |  61 +++++++++-
+ 9 files changed, 235 insertions(+), 36 deletions(-)
+
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
+index 6280cc05e7..3443442af3 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
+@@ -1493,7 +1493,8 @@ gst_amf_av1_enc_check_reconfigure (GstAmfEncoder * encoder)
+ }
+ 
+ static GstAmfAv1EncClassData *
+-gst_amf_av1_enc_create_class_data (GstD3D11Device * device, AMFComponent * comp)
++gst_amf_av1_enc_create_class_data (GST_AMF_PLATFORM_DEVICE * device,
++    AMFComponent * comp)
+ {
+   AMF_RESULT result;
+   GstAmfAv1EncDeviceCaps dev_caps = { 0, };
+@@ -1604,11 +1605,14 @@ gst_amf_av1_enc_create_class_data (GstD3D11Device * device, AMFComponent * comp)
+     if (type == AMF_MEMORY_DX11)
+       d3d11_supported = TRUE;
+   }
+-
++#ifdef G_OS_WIN32
+   if (!d3d11_supported) {
+     GST_WARNING_OBJECT (device, "D3D11 is not supported");
+     return nullptr;
+   }
++#else
++  (void) d3d11_supported;
++#endif // G_OS_WIN32
+ 
+   result = amf_caps->GetOutputCaps (&out_iocaps);
+   if (result != AMF_OK) {
+@@ -1741,16 +1745,24 @@ gst_amf_av1_enc_create_class_data (GstD3D11Device * device, AMFComponent * comp)
+ 
+   system_caps = gst_caps_from_string (sink_caps_str.c_str ());
+   sink_caps = gst_caps_copy (system_caps);
++#ifdef G_OS_WIN32
+   gst_caps_set_features (sink_caps, 0,
+       gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_D3D11_MEMORY,
+           nullptr));
++#else
++  gst_caps_set_features (sink_caps, 0,
++      gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_SYSTEM_MEMORY,
++          nullptr));
++#endif // G_OS_WIN32
+   gst_caps_append (sink_caps, system_caps);
+ 
+   cdata = g_new0 (GstAmfAv1EncClassData, 1);
+   cdata->sink_caps = sink_caps;
+   cdata->src_caps = gst_caps_from_string (src_caps_str.c_str ());
+   cdata->dev_caps = dev_caps;
++#ifdef G_OS_WIN32
+   g_object_get (device, "adapter-luid", &cdata->adapter_luid, nullptr);
++#endif // G_OS_WIN32
+ 
+   GST_MINI_OBJECT_FLAG_SET (cdata->sink_caps,
+       GST_MINI_OBJECT_FLAG_MAY_BE_LEAKED);
+@@ -1764,7 +1776,7 @@ gst_amf_av1_enc_create_class_data (GstD3D11Device * device, AMFComponent * comp)
+ }
+ 
+ void
+-gst_amf_av1_enc_register_d3d11 (GstPlugin * plugin, GstD3D11Device * device,
++gst_amf_av1_enc_register (GstPlugin * plugin, GST_AMF_PLATFORM_DEVICE * device,
+     gpointer context, guint rank)
+ {
+   GstAmfAv1EncClassData *cdata;
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.h b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.h
+index 93cc2f74d4..d9e71c09b7 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.h
+@@ -20,10 +20,21 @@
+ #pragma once
+ 
+ #include "gstamfencoder.h"
++#ifdef G_OS_WIN32
+ #include <gst/d3d11/gstd3d11.h>
++#else
++#include "gst/vulkan/vulkan_fwd.h"
++#endif // G_OS_WIN32
++
++#ifdef G_OS_WIN32
++typedef GstD3D11Device GST_AMF_PLATFORM_DEVICE;
++#else
++typedef GstVulkanDevice GST_AMF_PLATFORM_DEVICE;
++#endif // G_OS_WIN32
+ 
+ G_BEGIN_DECLS
+-    void gst_amf_av1_enc_register_d3d11 (GstPlugin * plugin,
+-    GstD3D11Device * device, gpointer context, guint rank);
++    void gst_amf_av1_enc_register (GstPlugin * plugin,
++    GST_AMF_PLATFORM_DEVICE * device, gpointer context, guint rank);
++
+ 
+ G_END_DECLS
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfencoder.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfencoder.cpp
+index a3dbdd73e6..467d87409d 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfencoder.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfencoder.cpp
+@@ -25,15 +25,19 @@
+ #include <core/Factory.h>
+ #include "gstamfencoder.h"
+ 
++#ifdef G_OS_WIN32
+ #include <gst/d3d11/gstd3d11.h>
+ #include <wrl.h>
+-#include <string.h>
+ #include <mmsystem.h>
++#endif //G_OS_WIN32
++#include <string.h>
+ #include <queue>
+ #include <algorithm>
+ 
+ /* *INDENT-OFF* */
++#ifdef G_OS_WIN32
+ using namespace Microsoft::WRL;
++#endif //G_OS_WIN32
+ using namespace amf;
+ /* *INDENT-ON* */
+ 
+@@ -334,9 +338,11 @@ gst_amf_enc_pa_hmbq_mode_get_type (void)
+ GST_DEBUG_CATEGORY_STATIC (gst_amf_encoder_debug);
+ #define GST_CAT_DEFAULT gst_amf_encoder_debug
+ 
++#ifdef G_OS_WIN32
+ static GUID AMFTextureArrayIndexGUID = { 0x28115527, 0xe7c3, 0x4b66, 0x99, 0xd3,
+   0x4f, 0x2a, 0xe6, 0xb4, 0x7f, 0xaf
+ };
++#endif // G_OS_WIN32
+ 
+ #define GST_AMF_BUFFER_PROP L"GstAmfFrameData"
+ 
+@@ -355,8 +361,12 @@ struct _GstAmfEncoderPrivate
+   gint64 adapter_luid = 0;
+   const wchar_t *codec_id = nullptr;
+ 
++#ifdef G_OS_WIN32
+   GstD3D11Device *device = nullptr;
+   GstD3D11Fence *fence = nullptr;
++#else
++  void *device = nullptr; // [[unused]]
++#endif
+   AMFContext *context = nullptr;
+   AMFComponent *comp = nullptr;
+   GstBufferPool *internal_pool = nullptr;
+@@ -446,6 +456,7 @@ static void
+ gst_amf_encoder_init (GstAmfEncoder * self)
+ {
+   GstAmfEncoderPrivate *priv;
++#ifdef G_OS_WIN32
+   TIMECAPS time_caps;
+ 
+   priv = self->priv = new GstAmfEncoderPrivate ();
+@@ -462,6 +473,13 @@ gst_amf_encoder_init (GstAmfEncoder * self)
+     if (ret == TIMERR_NOERROR)
+       priv->timer_resolution = resolution;
+   }
++#else
++  timespec resolution;
++  priv = self->priv = new GstAmfEncoderPrivate ();
++  if (clock_getres (CLOCK_MONOTONIC, &resolution) == 0) {
++    priv->timer_resolution = resolution.tv_nsec / 1000000;
++  }
++#endif
+ }
+ 
+ static void
+@@ -481,8 +499,10 @@ gst_amf_encoder_finalize (GObject * object)
+   GstAmfEncoder *self = GST_AMF_ENCODER (object);
+   GstAmfEncoderPrivate *priv = self->priv;
+ 
++#ifdef G_OS_WIN32
+   if (priv->timer_resolution)
+     timeEndPeriod (priv->timer_resolution);
++#endif
+ 
+   delete priv;
+ 
+@@ -492,11 +512,12 @@ gst_amf_encoder_finalize (GObject * object)
+ static void
+ gst_amf_encoder_set_context (GstElement * element, GstContext * context)
+ {
++#ifdef G_OS_WIN32
+   GstAmfEncoder *self = GST_AMF_ENCODER (element);
+   GstAmfEncoderPrivate *priv = self->priv;
+-
+   gst_d3d11_handle_set_context_for_adapter_luid (element,
+       context, priv->adapter_luid, &priv->device);
++#endif // G_OS_WIN32
+ 
+   GST_ELEMENT_CLASS (parent_class)->set_context (element, context);
+ }
+@@ -506,14 +527,18 @@ gst_amf_encoder_open (GstVideoEncoder * encoder)
+ {
+   GstAmfEncoder *self = GST_AMF_ENCODER (encoder);
+   GstAmfEncoderPrivate *priv = self->priv;
+-  ComPtr < ID3D10Multithread > multi_thread;
+-  ID3D11Device *device_handle;
+   AMFFactory *factory = (AMFFactory *) gst_amf_get_factory ();
+   AMF_RESULT result;
++#ifdef G_OS_WIN32
++  ComPtr < ID3D10Multithread > multi_thread;
++  ID3D11Device *device_handle;
+   HRESULT hr;
+   D3D_FEATURE_LEVEL feature_level;
+   AMF_DX_VERSION dx_ver = AMF_DX11_1;
++#endif // G_OS_WIN32
++
+ 
++#ifdef G_OS_WIN32
+   if (!gst_d3d11_ensure_element_data_for_adapter_luid (GST_ELEMENT (self),
+           priv->adapter_luid, &priv->device)) {
+     GST_ERROR_OBJECT (self, "d3d11 device is unavailable");
+@@ -534,6 +559,7 @@ gst_amf_encoder_open (GstVideoEncoder * encoder)
+   }
+ 
+   multi_thread->SetMultithreadProtected (TRUE);
++#endif // G_OS_WIN32
+ 
+   result = factory->CreateContext (&priv->context);
+   if (result != AMF_OK) {
+@@ -541,7 +567,12 @@ gst_amf_encoder_open (GstVideoEncoder * encoder)
+     goto error;
+   }
+ 
++
++#ifdef G_OS_WIN32
+   result = priv->context->InitDX11 (device_handle, dx_ver);
++#else
++  result = AMFContext1Ptr (priv->context)->InitVulkan (NULL);
++#endif // G_OS_WIN32
+   if (result != AMF_OK) {
+     GST_ERROR_OBJECT (self, "Failed to init context");
+     goto error;
+@@ -790,7 +821,9 @@ gst_amf_encoder_close (GstVideoEncoder * encoder)
+     priv->context = nullptr;
+   }
+ 
++#ifdef G_OS_WIN32
+   gst_clear_d3d11_fence (&priv->fence);
++#endif
+   gst_clear_object (&priv->device);
+ 
+   return TRUE;
+@@ -803,13 +836,16 @@ gst_amf_encoder_prepare_internal_pool (GstAmfEncoder * self)
+   GstVideoInfo *info = &priv->input_state->info;
+   GstCaps *caps = priv->input_state->caps;
+   GstStructure *config;
++#ifdef G_OS_WIN32
+   GstD3D11AllocationParams *params;
++#endif // G_OS_WIN32
+ 
+   if (priv->internal_pool) {
+     gst_buffer_pool_set_active (priv->internal_pool, FALSE);
+     gst_clear_object (&priv->internal_pool);
+   }
+ 
++#ifdef G_OS_WIN32
+   priv->internal_pool = gst_d3d11_buffer_pool_new (priv->device);
+   config = gst_buffer_pool_get_config (priv->internal_pool);
+   gst_buffer_pool_config_set_params (config, caps,
+@@ -821,6 +857,12 @@ gst_amf_encoder_prepare_internal_pool (GstAmfEncoder * self)
+ 
+   gst_buffer_pool_config_set_d3d11_allocation_params (config, params);
+   gst_d3d11_allocation_params_free (params);
++#else
++  priv->internal_pool = gst_buffer_pool_new ();
++  config = gst_buffer_pool_get_config (priv->internal_pool);
++  gst_buffer_pool_config_set_params (config, caps,
++      GST_VIDEO_INFO_SIZE (info), 0, 0);
++#endif // G_OS_WIN32
+ 
+   if (!gst_buffer_pool_set_config (priv->internal_pool, config)) {
+     GST_ERROR_OBJECT (self, "Failed to set config");
+@@ -967,6 +1009,7 @@ gst_amf_encoder_upload_sysmem (GstAmfEncoder * self, GstBuffer * src_buf,
+   return dst_buf;
+ }
+ 
++#ifdef G_OS_WIN32
+ static GstBuffer *
+ gst_amf_encoder_copy_d3d11 (GstAmfEncoder * self, GstBuffer * src_buffer,
+     gboolean shared)
+@@ -1104,16 +1147,18 @@ error:
+ 
+   return nullptr;
+ }
++#endif // G_OS_WIN32
+ 
+ static GstBuffer *
+ gst_amf_encoder_upload_buffer (GstAmfEncoder * self, GstBuffer * buffer)
+ {
+   GstAmfEncoderPrivate *priv = self->priv;
+   GstVideoInfo *info = &priv->input_state->info;
++#ifdef G_OS_WIN32
+   GstMemory *mem;
++  GstBuffer *ret;
+   GstD3D11Memory *dmem;
+   D3D11_TEXTURE2D_DESC desc;
+-  GstBuffer *ret;
+ 
+   mem = gst_buffer_peek_memory (buffer, 0);
+   if (!gst_is_d3d11_memory (mem) || gst_buffer_n_memory (buffer) > 1) {
+@@ -1149,6 +1194,9 @@ gst_amf_encoder_upload_buffer (GstAmfEncoder * self, GstBuffer * buffer)
+ 
+     return ret;
+   }
++#else
++  return gst_amf_encoder_upload_sysmem (self, buffer, info);
++#endif // G_OS_WIN32
+ 
+   return gst_buffer_ref (buffer);
+ }
+@@ -1218,11 +1266,18 @@ gst_amf_encoder_handle_frame (GstVideoEncoder * encoder,
+   AMFSurfacePtr surface;
+   AMF_RESULT result;
+   guint32 *system_frame_number;
+-  guint subresource_index;
+   GstAmfEncoderFrameData *frame_data;
+-  ID3D11Texture2D *texture;
+   gboolean need_reconfigure;
+   GstFlowReturn ret;
++#ifdef G_OS_WIN32
++  ID3D11Texture2D *texture;
++  guint subresource_index;
++#else
++  amf_int32 width;
++  amf_int32 height;
++  AMF_SURFACE_FORMAT format;
++  amf_int32 hPitch;
++#endif // G_OS_WIN32
+ 
+   if (!priv->comp && !gst_amf_encoder_open_component (self)) {
+     GST_ERROR_OBJECT (self, "Encoder object was not configured");
+@@ -1252,11 +1307,18 @@ gst_amf_encoder_handle_frame (GstVideoEncoder * encoder,
+ 
+   frame_data = g_new0 (GstAmfEncoderFrameData, 1);
+   frame_data->buffer = buffer;
++
++#ifdef G_OS_WIN32
+   gst_buffer_map (frame_data->buffer, &frame_data->info,
+       (GstMapFlags) (GST_MAP_READ | GST_MAP_D3D11));
++#else
++  gst_buffer_map (frame_data->buffer, &frame_data->info,
++      (GstMapFlags) (GST_MAP_READ));
++#endif
+   gst_video_codec_frame_set_user_data (frame, frame_data,
+       (GDestroyNotify) gst_amf_frame_data_free);
+ 
++#ifdef G_OS_WIN32
+   subresource_index = GPOINTER_TO_UINT (frame_data->info.user_data[0]);
+ 
+   gst_d3d11_device_lock (priv->device);
+@@ -1266,6 +1328,23 @@ gst_amf_encoder_handle_frame (GstVideoEncoder * encoder,
+   result = priv->context->CreateSurfaceFromDX11Native (texture,
+       &surface, nullptr);
+   gst_d3d11_device_unlock (priv->device);
++#else
++  width = GST_VIDEO_FRAME_WIDTH (priv->input_state);
++  height = GST_VIDEO_FRAME_HEIGHT (priv->input_state);
++  hPitch = GST_VIDEO_FRAME_PLANE_STRIDE (priv->input_state, 0);
++  if (GST_VIDEO_FRAME_FORMAT (priv->input_state) == GST_VIDEO_FORMAT_NV12) {
++    format = amf::AMF_SURFACE_NV12;
++  } else if (GST_VIDEO_FRAME_FORMAT (priv->input_state) ==
++      GST_VIDEO_FORMAT_P010_10LE) {
++    format = AMF_SURFACE_P010;
++  } else {
++    GST_ERROR_OBJECT (self, "Unexpected video format %d",
++        GST_VIDEO_FRAME_FORMAT (priv->input_state));
++    goto error;
++  }
++  priv->context->CreateSurfaceFromHostNative (format, width, height, hPitch,
++      height, frame_data->info.data, &surface, nullptr);
++#endif // G_OS_WIN32
+   if (result != AMF_OK) {
+     GST_ERROR_OBJECT (self, "Failed to create surface, result %"
+         GST_AMF_RESULT_FORMAT, GST_AMF_RESULT_ARGS (result));
+@@ -1327,10 +1406,13 @@ gst_amf_encoder_flush (GstVideoEncoder * encoder)
+ static gboolean
+ gst_amf_encoder_handle_context_query (GstAmfEncoder * self, GstQuery * query)
+ {
++#ifdef G_OS_WIN32
+   GstAmfEncoderPrivate *priv = self->priv;
+-
+   return gst_d3d11_handle_context_query (GST_ELEMENT (self), query,
+       priv->device);
++#else
++  return TRUE;
++#endif // G_OS_WIN32
+ }
+ 
+ static gboolean
+@@ -1371,17 +1453,19 @@ static gboolean
+ gst_amf_encoder_propose_allocation (GstVideoEncoder * encoder, GstQuery * query)
+ {
+   GstAmfEncoder *self = GST_AMF_ENCODER (encoder);
+-  GstAmfEncoderPrivate *priv = self->priv;
+-  GstD3D11Device *device = GST_D3D11_DEVICE (priv->device);
+   GstVideoInfo info;
+   GstBufferPool *pool;
+   GstCaps *caps;
+   guint size;
+   GstStructure *config;
+-  GstCapsFeatures *features;
+   gboolean is_d3d11 = FALSE;
+   guint min_buffers = 0;
++#ifdef G_OS_WIN32
++  GstCapsFeatures *features;
++  GstAmfEncoderPrivate *priv = self->priv;
++  GstD3D11Device *device = GST_D3D11_DEVICE (priv->device);
+   GstD3D11AllocationParams *params;
++#endif // G_OS_WIN32
+ 
+   gst_query_parse_allocation (query, &caps, nullptr);
+   if (!caps) {
+@@ -1394,6 +1478,7 @@ gst_amf_encoder_propose_allocation (GstVideoEncoder * encoder, GstQuery * query)
+     return FALSE;
+   }
+ 
++#ifdef G_OS_WIN32
+   features = gst_caps_get_features (caps, 0);
+   if (features && gst_caps_features_contains (features,
+           GST_CAPS_FEATURE_MEMORY_D3D11_MEMORY)) {
+@@ -1407,6 +1492,9 @@ gst_amf_encoder_propose_allocation (GstVideoEncoder * encoder, GstQuery * query)
+   } else {
+     pool = gst_video_buffer_pool_new ();
+   }
++#else
++  pool = gst_video_buffer_pool_new ();
++#endif // G_OS_WIN32
+ 
+   config = gst_buffer_pool_get_config (pool);
+   gst_buffer_pool_config_add_option (config, GST_BUFFER_POOL_OPTION_VIDEO_META);
+@@ -1418,10 +1506,12 @@ gst_amf_encoder_propose_allocation (GstVideoEncoder * encoder, GstQuery * query)
+   size = GST_VIDEO_INFO_SIZE (&info);
+   gst_buffer_pool_config_set_params (config, caps, size, min_buffers, 0);
+ 
++#ifdef G_OS_WIN32
+   params = gst_d3d11_allocation_params_new (device, &info,
+       GST_D3D11_ALLOCATION_FLAG_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0);
+   gst_buffer_pool_config_set_d3d11_allocation_params (config, params);
+   gst_d3d11_allocation_params_free (params);
++#endif // G_OS_WIN32
+ 
+   if (!gst_buffer_pool_set_config (pool, config)) {
+     GST_WARNING_OBJECT (self, "Failed to set pool config");
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.cpp
+index 212f61fdcc..daa961ca99 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.cpp
+@@ -1984,7 +1984,7 @@ gst_amf_h264_enc_check_reconfigure (GstAmfEncoder * encoder)
+ }
+ 
+ static GstAmfH264EncClassData *
+-gst_amf_h264_enc_create_class_data (GstD3D11Device * device,
++gst_amf_h264_enc_create_class_data (GST_AMF_PLATFORM_DEVICE * device,
+     AMFComponent * comp)
+ {
+   AMF_RESULT result;
+@@ -2075,10 +2075,14 @@ gst_amf_h264_enc_create_class_data (GstD3D11Device * device,
+       d3d11_supported = TRUE;
+   }
+ 
++#ifdef G_OS_WIN32
+   if (!d3d11_supported) {
+     GST_WARNING_OBJECT (device, "D3D11 is not supported");
+     return nullptr;
+   }
++#else
++  (void) d3d11_supported;
++#endif // G_OS_WIN32
+ 
+   result = amf_caps->GetOutputCaps (&out_iocaps);
+   if (result != AMF_OK) {
+@@ -2260,16 +2264,24 @@ gst_amf_h264_enc_create_class_data (GstD3D11Device * device,
+ 
+   system_caps = gst_caps_from_string (sink_caps_str.c_str ());
+   sink_caps = gst_caps_copy (system_caps);
++#ifdef G_OS_WIN32
+   gst_caps_set_features (sink_caps, 0,
+       gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_D3D11_MEMORY,
+           nullptr));
++#else
++  gst_caps_set_features (sink_caps, 0,
++      gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_SYSTEM_MEMORY,
++          nullptr));
++#endif // G_OS_WIN32
+   gst_caps_append (sink_caps, system_caps);
+ 
+   cdata = g_new0 (GstAmfH264EncClassData, 1);
+   cdata->sink_caps = sink_caps;
+   cdata->src_caps = gst_caps_from_string (src_caps_str.c_str ());
+   cdata->dev_caps = dev_caps;
++#ifdef G_OS_WIN32
+   g_object_get (device, "adapter-luid", &cdata->adapter_luid, nullptr);
++#endif
+ 
+   GST_MINI_OBJECT_FLAG_SET (cdata->sink_caps,
+       GST_MINI_OBJECT_FLAG_MAY_BE_LEAKED);
+@@ -2283,7 +2295,7 @@ gst_amf_h264_enc_create_class_data (GstD3D11Device * device,
+ }
+ 
+ void
+-gst_amf_h264_enc_register_d3d11 (GstPlugin * plugin, GstD3D11Device * device,
++gst_amf_h264_enc_register (GstPlugin * plugin, GST_AMF_PLATFORM_DEVICE * device,
+     gpointer context, guint rank)
+ {
+   GstAmfH264EncClassData *cdata;
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.h b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.h
+index 925031b687..d3ea75e033 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh264enc.h
+@@ -20,12 +20,23 @@
+ #pragma once
+ 
+ #include "gstamfencoder.h"
++#ifdef G_OS_WIN32
+ #include <gst/d3d11/gstd3d11.h>
++#else
++#include "gst/vulkan/vulkan_fwd.h"
++#endif
++
++#ifdef G_OS_WIN32
++typedef GstD3D11Device GST_AMF_PLATFORM_DEVICE;
++#else
++typedef GstVulkanDevice GST_AMF_PLATFORM_DEVICE;
++#endif // G_OS_WIN32
++
+ 
+ G_BEGIN_DECLS
+ 
+-void gst_amf_h264_enc_register_d3d11 (GstPlugin * plugin,
+-                                      GstD3D11Device * device,
++void gst_amf_h264_enc_register (GstPlugin * plugin,
++                                      GST_AMF_PLATFORM_DEVICE * device,
+                                       gpointer context,
+                                       guint rank);
+ 
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.cpp
+index 66ddd58f48..ed2289c790 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.cpp
+@@ -1671,7 +1671,7 @@ gst_amf_h265_enc_check_reconfigure (GstAmfEncoder * encoder)
+ }
+ 
+ static GstAmfH265EncClassData *
+-gst_amf_h265_enc_create_class_data (GstD3D11Device * device,
++gst_amf_h265_enc_create_class_data (GST_AMF_PLATFORM_DEVICE * device,
+     AMFComponent * comp)
+ {
+   AMF_RESULT result;
+@@ -1765,11 +1765,14 @@ gst_amf_h265_enc_create_class_data (GstD3D11Device * device,
+     if (type == AMF_MEMORY_DX11)
+       d3d11_supported = TRUE;
+   }
+-
++#ifdef G_OS_WIN32
+   if (!d3d11_supported) {
+     GST_WARNING_OBJECT (device, "D3D11 is not supported");
+     return nullptr;
+   }
++#else
++  (void) d3d11_supported;
++#endif // G_OS_WIN32
+ 
+   result = amf_caps->GetOutputCaps (&out_iocaps);
+   if (result != AMF_OK) {
+@@ -1953,16 +1956,24 @@ gst_amf_h265_enc_create_class_data (GstD3D11Device * device,
+ 
+   system_caps = gst_caps_from_string (sink_caps_str.c_str ());
+   sink_caps = gst_caps_copy (system_caps);
++#ifdef G_OS_WIN32
+   gst_caps_set_features (sink_caps, 0,
+       gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_D3D11_MEMORY,
+           nullptr));
++#else
++  gst_caps_set_features (sink_caps, 0,
++      gst_caps_features_new_static_str (GST_CAPS_FEATURE_MEMORY_SYSTEM_MEMORY,
++          nullptr));
++#endif // G_OS_WIN32
+   gst_caps_append (sink_caps, system_caps);
+ 
+   cdata = g_new0 (GstAmfH265EncClassData, 1);
+   cdata->sink_caps = sink_caps;
+   cdata->src_caps = gst_caps_from_string (src_caps_str.c_str ());
+   cdata->dev_caps = dev_caps;
++#ifdef G_OS_WIN32
+   g_object_get (device, "adapter-luid", &cdata->adapter_luid, nullptr);
++#endif // G_OS_WIN32
+ 
+   GST_MINI_OBJECT_FLAG_SET (cdata->sink_caps,
+       GST_MINI_OBJECT_FLAG_MAY_BE_LEAKED);
+@@ -1976,7 +1987,7 @@ gst_amf_h265_enc_create_class_data (GstD3D11Device * device,
+ }
+ 
+ void
+-gst_amf_h265_enc_register_d3d11 (GstPlugin * plugin, GstD3D11Device * device,
++gst_amf_h265_enc_register (GstPlugin * plugin, GST_AMF_PLATFORM_DEVICE * device,
+     gpointer context, guint rank)
+ {
+   GstAmfH265EncClassData *cdata;
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.h b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.h
+index 500fcaf7b7..8e35c971fd 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfh265enc.h
+@@ -20,12 +20,22 @@
+ #pragma once
+ 
+ #include "gstamfencoder.h"
++#ifdef G_OS_WIN32
+ #include <gst/d3d11/gstd3d11.h>
++#else
++#include "gst/vulkan/vulkan_fwd.h"
++#endif // G_OS_WIN32
++
++#ifdef G_OS_WIN32
++typedef GstD3D11Device GST_AMF_PLATFORM_DEVICE;
++#else
++typedef GstVulkanDevice GST_AMF_PLATFORM_DEVICE;
++#endif // G_OS_WIN32
+ 
+ G_BEGIN_DECLS
+ 
+-void gst_amf_h265_enc_register_d3d11 (GstPlugin * plugin,
+-                                      GstD3D11Device * device,
++void gst_amf_h265_enc_register (GstPlugin * plugin,
++                                      GST_AMF_PLATFORM_DEVICE * device,
+                                       gpointer context,
+                                       guint rank);
+ 
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/meson.build b/subprojects/gst-plugins-bad/sys/amfcodec/meson.build
+index 53b74595c7..539b837b22 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/meson.build
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/meson.build
+@@ -48,12 +48,6 @@ if host_system == 'windows'
+   endif
+ 
+   platform_deps += [gstd3d11_dep, winmm_lib]
+-else
+-  if amf_option.enabled()
+-    error('amf plugin supports only Windows')
+-  else
+-    subdir_done()
+-  endif
+ endif
+ 
+ if cxx.get_id() != 'msvc'
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/plugin.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/plugin.cpp
+index 6e957cd9e2..5ab65a4c94 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/plugin.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/plugin.cpp
+@@ -28,10 +28,15 @@
+ #endif
+ 
+ #include <gst/gst.h>
++#ifdef G_OS_WIN32
+ #include <gst/d3d11/gstd3d11.h>
+ #include <wrl.h>
+-#include <core/Factory.h>
+ #include <versionhelpers.h>
++#else
++#include <memory>
++#include <vector>
++#endif //G_OS_WIN32
++#include <core/Factory.h>
+ #include "gstamfutils.h"
+ #include "gstamfh264enc.h"
+ #include "gstamfh265enc.h"
+@@ -40,12 +45,15 @@
+ #include <glib/gi18n-lib.h>
+ 
+ /* *INDENT-OFF* */
++#ifdef G_OS_WIN32
+ using namespace Microsoft::WRL;
++#endif //G_OS_WIN32
+ using namespace amf;
+ /* *INDENT-ON* */
+ 
++#ifdef G_OS_WIN32
+ static gboolean
+-plugin_init (GstPlugin * plugin)
++plugin_init_d3d11 (GstPlugin * plugin)
+ {
+   AMFFactory *amf_factory;
+   ComPtr < IDXGIFactory1 > factory;
+@@ -116,11 +124,11 @@ plugin_init (GstPlugin * plugin)
+       result = context->InitDX11 (device_handle, dx_ver);
+ 
+     if (result == AMF_OK) {
+-      gst_amf_h264_enc_register_d3d11 (plugin, device,
++      gst_amf_h264_enc_register (plugin, device,
+           (gpointer) context.GetPtr (), GST_RANK_PRIMARY);
+-      gst_amf_h265_enc_register_d3d11 (plugin, device,
++      gst_amf_h265_enc_register (plugin, device,
+           (gpointer) context.GetPtr (), GST_RANK_PRIMARY);
+-      gst_amf_av1_enc_register_d3d11 (plugin, device,
++      gst_amf_av1_enc_register (plugin, device,
+           (gpointer) context.GetPtr (), GST_RANK_NONE);
+     }
+ 
+@@ -136,6 +144,48 @@ plugin_init (GstPlugin * plugin)
+ 
+   return TRUE;
+ }
++#endif // G_OS_WIN32
++
++#ifndef G_OS_WIN32
++static gboolean
++plugin_init_vulkan (GstPlugin * plugin)
++{
++  if (!gst_amf_init_once ())
++    return TRUE;
++
++  AMFFactory *amf_factory =
++      static_cast < AMFFactory * >(gst_amf_get_factory ());
++  if (!amf_factory)
++    return TRUE;
++
++  AMFContextPtr context
++  {
++  };
++  AMF_RESULT result = amf_factory->CreateContext (&context);
++  if (result == AMF_OK) {
++    result = AMFContext1Ptr (context)->InitVulkan (NULL);
++  }
++  if (result == AMF_OK) {
++    gst_amf_h264_enc_register (plugin, nullptr,
++        (gpointer) context.GetPtr (), GST_RANK_PRIMARY);
++    gst_amf_h265_enc_register (plugin, nullptr,
++        (gpointer) context.GetPtr (), GST_RANK_PRIMARY);
++    gst_amf_av1_enc_register (plugin, nullptr,
++        (gpointer) context.GetPtr (), GST_RANK_NONE);
++  }
++  return TRUE;
++}
++#endif // !G_OS_WIN32
++
++static gboolean
++plugin_init (GstPlugin * plugin)
++{
++#ifdef G_OS_WIN32
++  return plugin_init_d3d11 (plugin);
++#else
++  return plugin_init_vulkan (plugin);
++#endif // G_OS_WIN32
++}
+ 
+ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
+     GST_VERSION_MINOR,
+-- 
+GitLab
+

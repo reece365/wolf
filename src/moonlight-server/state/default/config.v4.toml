@@ -198,7 +198,7 @@ source = "audiotestsrc wave=ticks is-live=true"
 
 [gstreamer.video]
 
-default_source = 'interpipesrc listen-to={session_id}_video is-live=true stream-sync=restart-ts max-buffers=1 block=false'
+default_source = 'interpipesrc listen-to={session_id}_video is-live=true stream-sync=restart-ts max-buffers=5 block=false'
 default_sink = """
 rtpmoonlightpay_video name=moonlight_pay \
 payload_size={payload_size} fec_percentage={fec_percentage} min_required_fec_packets={min_required_fec_packets} !
@@ -210,7 +210,7 @@ appsink sync=false name=wolf_udp_sink
 # To avoid repetition between H264, HEVC and AV1 encoders
 [gstreamer.video.defaults.nvcodec]
 video_params = """
-queue leaky=downstream max-size-buffers=1 !
+queue leaky=downstream max-size-buffers=5 !
 cudaupload !
 cudaconvertscale !
 video/x-raw(memory:CUDAMemory), width={width}, height={height}, \
@@ -219,14 +219,21 @@ chroma-site={color_range}, format=NV12, colorimetry={color_space}, pixel-aspect-
 
 [gstreamer.video.defaults.qsv]
 video_params = """
-queue leaky=downstream max-size-buffers=1 !
+queue leaky=downstream max-size-buffers=5 !
 videoconvertscale !
 video/x-raw, chroma-site={color_range}, width={width}, height={height}, format=NV12, colorimetry={color_space}\
 """
 
+[gstreamer.video.defaults.amfcodec]
+video_params = """
+queue leaky=downstream max-size-buffers=5 !
+videoconvertscale !
+video/x-raw, chroma-size={color_range}, width={width}, height={height}, format=NV12, colorimetry={color_space}\
+"""
+
 [gstreamer.video.defaults.vaapi]
 video_params = """
-queue leaky=downstream max-size-buffers=1 !
+queue leaky=downstream max-size-buffers=5 !
 videoconvertscale !
 video/x-raw, chroma-site={color_range}, width={width}, height={height}, format=NV12, colorimetry={color_space}\
 """
@@ -249,6 +256,15 @@ plugin_name = "qsv"
 check_elements = ["qsvh265enc", "videoconvertscale"]
 encoder_pipeline = """
 qsvh265enc b-frames=0 gop-size=0 idr-interval=1 ref-frames=1 bitrate={bitrate} rate-control=cbr low-latency=1 target-usage=6 !
+h265parse !
+video/x-h265, profile=main, stream-format=byte-stream\
+"""
+
+[[gstreamer.video.hevc_encoders]]
+plugin_name = "amfcodec"
+check_elements = ["amfh265enc", "videoconvertscale"]
+encoder_pipeline = """
+amfh265enc gop-size=0 ref-frames=1 bitrate={bitrate} rate-control=cbr usage=ultra-low-latency pa-taq-mode=mode2 !
 h265parse !
 video/x-h265, profile=main, stream-format=byte-stream\
 """
@@ -310,6 +326,15 @@ video/x-h264, profile=main, stream-format=byte-stream\
 """
 
 [[gstreamer.video.h264_encoders]]
+plugin_name = "amfcodec"
+check_elements = ["amfh264enc", "videoconvertscale"]
+encoder_pipeline = """
+amfh264enc aud=false b-frames=0 gop-size=-1 ref-frames=1 bitrate={bitrate} rate-control=cbr usage=ultra-low-latency pa-taq-mode=mode2 !
+h264parse !
+video/x-h264, profile=main, stream-format=byte-stream\
+"""
+
+[[gstreamer.video.h264_encoders]]
 plugin_name = "vaapi"
 check_elements = ["vah264lpenc", "videoconvertscale"] # lp: (Low Power)
 encoder_pipeline = """
@@ -360,6 +385,15 @@ plugin_name = "qsv"
 check_elements = ["qsvav1enc", "videoconvertscale"]
 encoder_pipeline = """
 qsvav1enc gop-size=0 ref-frames=1 bitrate={bitrate} rate-control=cbr low-latency=1 target-usage=6 !
+av1parse !
+video/x-av1, stream-format=obu-stream, alignment=frame, profile=main\
+"""
+
+[[gstreamer.video.av1_encoders]]
+plugin_name = "amfcodec"
+check_elements = ["amfav1enc", "videoconvertscale"]
+encoder_pipeline = """
+amfav1enc gop-size=-1 ref-frames=1 bitrate={bitrate} rate-control=cbr usage=ultra-low-latency pa-taq-mode=mode2 !
 av1parse !
 video/x-av1, stream-format=obu-stream, alignment=frame, profile=main\
 """

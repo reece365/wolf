@@ -61,6 +61,7 @@ enum Encoder {
   NVIDIA,
   VAAPI,
   QUICKSYNC,
+  AMF,
   SOFTWARE,
   APPLE,
   UNKNOWN

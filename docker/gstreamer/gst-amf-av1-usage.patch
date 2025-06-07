@@ -1,0 +1,31 @@
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
+index 6280cc05e7..482c1f7f98 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/gstamfav1enc.cpp
+@@ -98,12 +98,26 @@ gst_amf_av1_enc_usage_get_type (void)
+      */
+     {AMF_VIDEO_ENCODER_AV1_USAGE_TRANSCODING, "Transcoding", "transcoding"},
+ 
++    /**
++     * GstAmfAv1EncUsage::ultra-low-latency:
++     *
++     * Ultra Low Latency usage
++     */
++    {AMF_VIDEO_ENCODER_AV1_USAGE_ULTRA_LOW_LATENCY, "Ultra Low Latency", "ultra-low-latency"},
++
+     /**
+      * GstAmfAv1EncUsage::low-latency:
+      *
+      * Low Latency usage
+      */
+     {AMF_VIDEO_ENCODER_AV1_USAGE_LOW_LATENCY, "Low Latency", "low-latency"},
++
++    /**
++     * GstAmfAv1EncUsage::webcam:
++     *
++     * Webcam usage
++     */
++    {AMF_VIDEO_ENCODER_AV1_USAGE_WEBCAM, "Webcam", "webcam"},
+     {0, nullptr, nullptr}
+   };
+ 

@@ -1,0 +1,2299 @@
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/ColorSpace.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/ColorSpace.h
+index fa6c752d40..8d6afdaeb3 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/ColorSpace.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/ColorSpace.h
+@@ -37,6 +37,8 @@
+ #define AMF_ColorSpace_h
+ #pragma once
+ 
++#include "../core/Platform.h"
++
+ // YUV <--> RGB conversion matrix with range
+ typedef enum AMF_VIDEO_CONVERTER_COLOR_PROFILE_ENUM
+ {
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/PreAnalysis.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/PreAnalysis.h
+index 51e8da662f..ce13117e22 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/PreAnalysis.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/PreAnalysis.h
+@@ -92,7 +92,7 @@ enum AMF_PA_HIGH_MOTION_QUALITY_BOOST_MODE_ENUM
+ 
+ 
+ // PA object properties
+-#define AMF_PA_ENGINE_TYPE                          L"PAEngineType"                         // AMF_MEMORY_TYPE (Host, DX11, OpenCL, Vulkan, Auto default : UNKNOWN (Auto))" - determines how the object is initialized and what kernels to use
++#define AMF_PA_ENGINE_TYPE                          L"PAEngineType"                         // AMF_MEMORY_TYPE (Host, DX11, OpenCL, Vulkan, DX12, Auto default : UNKNOWN (Auto))" - determines how the object is initialized and what kernels to use
+                                                                                             //                                                                        by default it is Auto (DX11, OpenCL and Vulkan are currently available)
+ 
+ #define AMF_PA_SCENE_CHANGE_DETECTION_ENABLE        L"PASceneChangeDetectionEnable"         // bool       (default : True)                                          - Enable Scene Change Detection GPU algorithm
+@@ -124,10 +124,10 @@ enum AMF_PA_HIGH_MOTION_QUALITY_BOOST_MODE_ENUM
+ 
+ 
+ //////////////////////////////////////////////////
+-// properties set by PA on output buffer interface
++// properties set by PA on output buffer interface in standalone mode
+ #define AMF_PA_ACTIVITY_MAP                         L"PAActivityMap"                        // AMFInterface* -> AMFSurface*;       Values: int32                    - When PA is standalone, there will be a 2D Activity map generated for each frame
+-#define AMF_PA_SCENE_CHANGE_DETECT                  L"PASceneChangeDetect"                  // bool                                                                 - True/False - available if AMF_PA_SCENE_CHANGE_DETECTION_ENABLE was set to True
+-#define AMF_PA_STATIC_SCENE_DETECT                  L"PAStaticSceneDetect"                  // bool                                                                 - True/False - available if AMF_PA_STATIC_SCENE_DETECTION_ENABLE was set to True
++#define AMF_PA_SCENE_CHANGE_DETECT                  L"PASceneChangeDetect"                  // bool                                                                 - True/False - available if AMF_PA_SCENE_CHANGE_DETECTION_ENABLE was set to True when PA is standalone
++#define AMF_PA_STATIC_SCENE_DETECT                  L"PAStaticSceneDetect"                  // bool                                                                 - True/False - available if AMF_PA_STATIC_SCENE_DETECTION_ENABLE was set to True when PA is standalone
+ 
+ 
+ #endif //#ifndef AMFPreAnalysis_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoDecoderUVD.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoDecoderUVD.h
+index c01b26994a..b9cebfd568 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoDecoderUVD.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoDecoderUVD.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -49,22 +49,22 @@
+ #define AMFVideoDecoderUVD_H264_SVC                  L"AMFVideoDecoderUVD_H264_SVC"
+ #define AMFVideoDecoderUVD_MJPEG                     L"AMFVideoDecoderUVD_MJPEG"
+ #define AMFVideoDecoderHW_H265_HEVC                  L"AMFVideoDecoderHW_H265_HEVC"
+-#define AMFVideoDecoderHW_H265_MAIN10                L"AMFVideoDecoderHW_H265_MAIN10"
++#define AMFVideoDecoderHW_H265_MAIN10                L"AMFVideoDecoderHW_H265_MAIN10" // deprecated, AMFVideoDecoderHW_H265_HEVC can be used
+ #define AMFVideoDecoderHW_VP9                        L"AMFVideoDecoderHW_VP9"
+-#define AMFVideoDecoderHW_VP9_10BIT                  L"AMFVideoDecoderHW_VP9_10BIT"
++#define AMFVideoDecoderHW_VP9_10BIT                  L"AMFVideoDecoderHW_VP9_10BIT" // deprecated, AMFVideoDecoderHW_VP9 can be used
+ #define AMFVideoDecoderHW_AV1                        L"AMFVideoDecoderHW_AV1"
+-#define AMFVideoDecoderHW_AV1_12BIT                  L"AMFVideoDecoderHW_AV1_12BIT"
++#define AMFVideoDecoderHW_AV1_12BIT                  L"AMFVideoDecoderHW_AV1_12BIT" // deprecated, AMFVideoDecoderHW_AV1 can be used
+ 
+ enum AMF_VIDEO_DECODER_MODE_ENUM
+ {
+     AMF_VIDEO_DECODER_MODE_REGULAR = 0,     // DPB delay is based on number of reference frames + 1 (from SPS)
+     AMF_VIDEO_DECODER_MODE_COMPLIANT,       // DPB delay is based on profile - up to 16
+-    AMF_VIDEO_DECODER_MODE_LOW_LATENCY,     // DPB delay is 0. Expect stream with no reordering in P-Frames or B-Frames. B-frames can be present as long as they do not introduce any frame re-ordering 
++    AMF_VIDEO_DECODER_MODE_LOW_LATENCY,     // DPB delay is 0. Expect stream with no reordering in P-Frames or B-Frames. B-frames can be present as long as they do not introduce any frame re-ordering
+ };
+ enum AMF_TIMESTAMP_MODE_ENUM
+ {
+     AMF_TS_PRESENTATION = 0, // default. decoder will preserve timestamps from input to output
+-       AMF_TS_SORT,             // decoder will resort PTS list 
++       AMF_TS_SORT,             // decoder will resort PTS list
+     AMF_TS_DECODE            // timestamps reflect decode order - decoder will reuse them
+ };
+ 
+@@ -86,7 +86,7 @@ enum AMF_TIMESTAMP_MODE_ENUM
+ #define AMF_VIDEO_DECODER_DEFAULT_SURFACES_FOR_TRANSIT  5                      // if AMF_VIDEO_DECODER_SURFACE_POOL_SIZE is 0 , AMF_VIDEO_DECODER_SURFACE_POOL_SIZE=AMF_VIDEO_DECODER_DEFAULT_SURFACES_FOR_TRANSIT+AMF_VIDEO_DECODER_DPB_SIZE
+ 
+ // Decoder capabilities - exposed in AMFCaps interface
+-#define AMF_VIDEO_DECODER_CAP_NUM_OF_STREAMS            L"NumOfStreams"               // amf_int64; maximum number of decode streams supported 
++#define AMF_VIDEO_DECODER_CAP_NUM_OF_STREAMS            L"NumOfStreams"               // amf_int64; maximum number of decode streams supported
+ 
+ 
+ // metadata information: can be set on output surface
+@@ -97,7 +97,7 @@ enum AMF_TIMESTAMP_MODE_ENUM
+ #define AMF_VIDEO_DECODER_HDR_METADATA                  L"HdrMetadata"          // AMFBuffer containing AMFHDRMetadata; default NULL
+ 
+ /////// AMF_VIDEO_DECODER_FULL_RANGE_COLOR deprecated, use AMF_VIDEO_DECODER_COLOR_RANGE
+-#define AMF_VIDEO_DECODER_FULL_RANGE_COLOR              L"FullRangeColor"       // bool; default = false; false =  studio range, true = full range 
++#define AMF_VIDEO_DECODER_FULL_RANGE_COLOR              L"FullRangeColor"       // bool; default = false; false =  studio range, true = full range
+ ///////
+ #define AMF_VIDEO_DECODER_COLOR_RANGE                   L"ColorRange"           // amf_int64(AMF_COLOR_RANGE_ENUM) default = AMF_COLOR_RANGE_UNDEFINED
+ 
+@@ -105,8 +105,8 @@ enum AMF_TIMESTAMP_MODE_ENUM
+ #define AMF_VIDEO_DECODER_COLOR_PROFILE                 L"ColorProfile"         // amf_int64(AMF_VIDEO_CONVERTER_COLOR_PROFILE_ENUM); default = AMF_VIDEO_CONVERTER_COLOR_PROFILE_UNKNOWN - mean AUTO
+ 
+ // properties to be set on decoder if internal converter is used
+-#define AMF_VIDEO_DECODER_OUTPUT_TRANSFER_CHARACTERISTIC        L"OutColorTransferChar"     // amf_int64(AMF_COLOR_TRANSFER_CHARACTERISTIC_ENUM); default = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED, ISO/IEC 23001-8_2013   7.2 See VideoDecoderUVD.h for enum 
+-#define AMF_VIDEO_DECODER_OUTPUT_COLOR_PRIMARIES                L"OutputColorPrimaries"     // amf_int64(AMF_COLOR_PRIMARIES_ENUM); default = AMF_COLOR_PRIMARIES_UNDEFINED, ISO/IEC 23001-8_2013   7.1 See ColorSpace.h for enum 
++#define AMF_VIDEO_DECODER_OUTPUT_TRANSFER_CHARACTERISTIC        L"OutColorTransferChar"     // amf_int64(AMF_COLOR_TRANSFER_CHARACTERISTIC_ENUM); default = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED, ISO/IEC 23001-8_2013   7.2 See VideoDecoderUVD.h for enum
++#define AMF_VIDEO_DECODER_OUTPUT_COLOR_PRIMARIES                L"OutputColorPrimaries"     // amf_int64(AMF_COLOR_PRIMARIES_ENUM); default = AMF_COLOR_PRIMARIES_UNDEFINED, ISO/IEC 23001-8_2013   7.1 See ColorSpace.h for enum
+ #define AMF_VIDEO_DECODER_OUTPUT_HDR_METADATA                   L"OutHDRMetadata"           // AMFBuffer containing AMFHDRMetadata; default NULL
+ 
+ #define AMF_VIDEO_DECODER_LOW_LATENCY                           L"LowLatencyDecode"         // amf_bool; default = false; true = low latency decode, false = regular decode
+@@ -122,5 +122,14 @@ enum AMF_TIMESTAMP_MODE_ENUM
+ 
+ #define AMF_VIDEO_DECODER_ENABLE_SMART_ACCESS_VIDEO             L"EnableDecoderSmartAccessVideo"     // amf_bool; default = false; true = enables smart access video feature
+ #define AMF_VIDEO_DECODER_SKIP_TRANSFER_SMART_ACCESS_VIDEO      L"SkipTransferSmartAccessVideo"      // amf_bool; default = false; true = keeps output on GPU where it ran
++#define AMF_VIDEO_DECODER_OUTPUT_FORMAT                         L"OutputDecodeFormat"                // amf_int64 (AMF_SURFACE_FORMAT) detected output format
++
++#define AMF_VIDEO_DECODER_CAP_SUPPORT_SMART_ACCESS_VIDEO        L"SupportSmartAccessVideo"           // amf_bool; returns true if system supports SmartAccess Video
++
++#define AMF_VIDEO_DECODER_SURFACE_CPU                           L"SurfaceCpu"                        // amf_bool. default = false, true = hint to decoder that output will be consumed on cpu
++
++#define AMF_VIDEO_DECODER_INSTANCE_INDEX                        L"DecoderInstance"                   // amf_int64; selected HW instance idx
++#define AMF_VIDEO_DECODER_CAP_NUM_OF_HW_INSTANCES               L"NumOfHwDecoderInstances"           // amf_int64 number of HW decoder instances
++
+ 
+ #endif //#ifndef AMF_VideoDecoderUVD_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderAV1.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderAV1.h
+index 0111f66c83..351f6421f4 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderAV1.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderAV1.h
+@@ -44,8 +44,12 @@ enum AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE_ENUM
+ 
+ enum AMF_VIDEO_ENCODER_AV1_USAGE_ENUM
+ {
+-    AMF_VIDEO_ENCODER_AV1_USAGE_TRANSCODING     = 0,
+-    AMF_VIDEO_ENCODER_AV1_USAGE_LOW_LATENCY     = 1
++    AMF_VIDEO_ENCODER_AV1_USAGE_TRANSCODING                 = 0,
++    AMF_VIDEO_ENCODER_AV1_USAGE_ULTRA_LOW_LATENCY           = 2,
++    AMF_VIDEO_ENCODER_AV1_USAGE_LOW_LATENCY                 = 1,
++    AMF_VIDEO_ENCODER_AV1_USAGE_WEBCAM                      = 3,
++    AMF_VIDEO_ENCODER_AV1_USAGE_HIGH_QUALITY                = 4,
++    AMF_VIDEO_ENCODER_AV1_USAGE_LOW_LATENCY_HIGH_QUALITY    = 5
+ };
+ 
+ enum AMF_VIDEO_ENCODER_AV1_PROFILE_ENUM
+@@ -120,8 +124,8 @@ enum AMF_VIDEO_ENCODER_AV1_OUTPUT_FRAME_TYPE_ENUM
+ 
+ enum AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_ENUM
+ {
+-    AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_HIGH_QUALITY   = 0,    
+-    AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_QUALITY        = 30,    
++    AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_HIGH_QUALITY   = 0,
++    AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_QUALITY        = 30,
+     AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_BALANCED       = 70,
+     AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_SPEED          = 100
+ };
+@@ -130,7 +134,8 @@ enum AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_ENUM
+ {
+     AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_NONE                = 0,
+     AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_GOP_ALIGNED         = 1,
+-    AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_KEY_FRAME_ALIGNED   = 2
++    AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_KEY_FRAME_ALIGNED   = 2,
++    AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_SUPPRESSED          = 3
+ };
+ 
+ enum AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INSERTION_MODE_ENUM
+@@ -169,12 +174,23 @@ enum AMF_VIDEO_ENCODER_AV1_LTR_MODE_ENUM
+     AMF_VIDEO_ENCODER_AV1_LTR_MODE_KEEP_UNUSED      = 1
+ };
+ 
++enum AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE_ENUM
++{
++    AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE_FRAME = 0,
++    AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE_TILE  = 1
++};
+ 
+-// *** Static properties - can be set only before Init() *** 
++enum AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE_ENUM
++{
++    AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE_FRAME = 0,
++    AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE_TILE = 1,
++    AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE_TILE_LAST = 2
++};
++// *** Static properties - can be set only before Init() ***
+ 
+ // Encoder Engine Settings
+ #define AMF_VIDEO_ENCODER_AV1_ENCODER_INSTANCE_INDEX                L"Av1EncoderInstanceIndex"          // amf_int64; default = 0; selected HW instance idx. The number of instances is queried by using AMF_VIDEO_ENCODER_AV1_CAP_NUM_OF_HW_INSTANCES
+-#define AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE                 L"Av1EncodingLatencyMode"           // amf_int64(AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE_ENUM); default = depends on USAGE; The encoding latency mode. 
++#define AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE                 L"Av1EncodingLatencyMode"           // amf_int64(AMF_VIDEO_ENCODER_AV1_ENCODING_LATENCY_MODE_ENUM); default = depends on USAGE; The encoding latency mode.
+ #define AMF_VIDEO_ENCODER_AV1_QUERY_TIMEOUT                         L"Av1QueryTimeout"                  // amf_int64; default = 0 (no wait); timeout for QueryOutput call in ms.
+ 
+ // Usage Settings
+@@ -189,7 +205,7 @@ enum AMF_VIDEO_ENCODER_AV1_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET                        L"Av1QualityPreset"                 // amf_int64(AMF_VIDEO_ENCODER_AV1_QUALITY_PRESET_ENUM); default = depends on USAGE; Quality Preset
+ 
+ // Codec Configuration
+-#define AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS                  L"Av1ScreenContentTools"            // bool; default = depends on USAGE; If true, allow enabling screen content tools by AMF_VIDEO_ENCODER_AV1_PALETTE_MODE and AMF_VIDEO_ENCODER_AV1_FORCE_INTEGER_MV; if false, all screen content tools are disabled.
++#define AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS                  L"Av1ScreenContentTools"            // bool; default = true; If true, allow enabling screen content tools by AMF_VIDEO_ENCODER_AV1_PALETTE_MODE and AMF_VIDEO_ENCODER_AV1_FORCE_INTEGER_MV; if false, all screen content tools are disabled.
+ #define AMF_VIDEO_ENCODER_AV1_ORDER_HINT                            L"Av1OrderHint"                     // bool; default = depends on USAGE; If true, code order hint; if false, don't code order hint
+ #define AMF_VIDEO_ENCODER_AV1_FRAME_ID                              L"Av1FrameId"                       // bool; default = depends on USAGE; If true, code frame id; if false, don't code frame id
+ #define AMF_VIDEO_ENCODER_AV1_TILE_GROUP_OBU                        L"Av1TileGroupObu"                  // bool; default = depends on USAGE; If true, code FrameHeaderObu + TileGroupObu and each TileGroupObu contains one tile; if false, code FrameObu.
+@@ -220,13 +236,17 @@ enum AMF_VIDEO_ENCODER_AV1_LTR_MODE_ENUM
+ 
+ // Miscellaneous
+ #define AMF_VIDEO_ENCODER_AV1_EXTRA_DATA                            L"Av1ExtraData"                     // AMFInterface* - > AMFBuffer*; buffer to retrieve coded sequence header
++#define AMF_VIDEO_ENCODER_AV1_ENABLE_SMART_ACCESS_VIDEO             L"Av1EnableEncoderSmartAccessVideo" // amf_bool; default = false; true = enables smart access video feature
++#define AMF_VIDEO_ENCODER_AV1_INPUT_QUEUE_SIZE                      L"Av1InputQueueSize"                // amf_int64; default 16; Set amf input queue size
+ 
++// Tile Output
++#define AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE                           L"AV1OutputMode"                    // amf_int64(AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE_ENUM); default = AMF_VIDEO_ENCODER_AV1_OUTPUT_MODE_FRAME - defines encoder output mode
+ 
+-// *** Dynamic properties - can be set anytime *** 
++// *** Dynamic properties - can be set anytime ***
+ 
+ // Codec Configuration
+-#define AMF_VIDEO_ENCODER_AV1_PALETTE_MODE                          L"Av1PaletteMode"                   // bool; default = depends on USAGE; If true, enable palette mode; if false, disable palette mode. Valid only when AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS is true.
+-#define AMF_VIDEO_ENCODER_AV1_FORCE_INTEGER_MV                      L"Av1ForceIntegerMv"                // bool; default = depends on USAGE; If true, enable force integer MV; if false, disable force integer MV. Valid only when AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS is true.
++#define AMF_VIDEO_ENCODER_AV1_PALETTE_MODE                          L"Av1PaletteMode"                   // bool; default = true; If true, enable palette mode; if false, disable palette mode. Valid only when AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS is true.
++#define AMF_VIDEO_ENCODER_AV1_FORCE_INTEGER_MV                      L"Av1ForceIntegerMv"                // bool; default = false; If true, enable force integer MV; if false, disable force integer MV. Valid only when AMF_VIDEO_ENCODER_AV1_SCREEN_CONTENT_TOOLS is true.
+ #define AMF_VIDEO_ENCODER_AV1_CDF_UPDATE                            L"Av1CdfUpdate"                     // bool; default = depends on USAGE; If true, enable CDF update; if false, disable CDF update.
+ #define AMF_VIDEO_ENCODER_AV1_CDF_FRAME_END_UPDATE_MODE             L"Av1CdfFrameEndUpdateMode"         // amd_int64(AMF_VIDEO_ENCODER_AV1_CDF_FRAME_END_UPDATE_MODE_ENUM); default = depends on USAGE; CDF frame end update mode
+ 
+@@ -240,19 +260,20 @@ enum AMF_VIDEO_ENCODER_AV1_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_AV1_PEAK_BITRATE                          L"Av1PeakBitrate"                   // amf_int64; default = depends on USAGE; Peak bit rate in bits
+ 
+ #define AMF_VIDEO_ENCODER_AV1_MAX_COMPRESSED_FRAME_SIZE             L"Av1MaxCompressedFrameSize"        // amf_int64; default = 0; Max compressed frame Size in bits. 0 - no limit
+-#define AMF_VIDEO_ENCODER_AV1_MIN_Q_INDEX_INTRA                     L"Av1MinQIndex_Intra"               // amf_int64; default = depends on USAGE; Min QIndex for intra frames; range = 0-255
+-#define AMF_VIDEO_ENCODER_AV1_MAX_Q_INDEX_INTRA                     L"Av1MaxQIndex_Intra"               // amf_int64; default = depends on USAGE; Max QIndex for intra frames; range = 0-255
+-#define AMF_VIDEO_ENCODER_AV1_MIN_Q_INDEX_INTER                     L"Av1MinQIndex_Inter"               // amf_int64; default = depends on USAGE; Min QIndex for inter frames; range = 0-255
+-#define AMF_VIDEO_ENCODER_AV1_MAX_Q_INDEX_INTER                     L"Av1MaxQIndex_Inter"               // amf_int64; default = depends on USAGE; Max QIndex for inter frames; range = 0-255
++#define AMF_VIDEO_ENCODER_AV1_MIN_Q_INDEX_INTRA                     L"Av1MinQIndex_Intra"               // amf_int64; default = depends on USAGE; Min QIndex for intra frames; range = 1-255
++#define AMF_VIDEO_ENCODER_AV1_MAX_Q_INDEX_INTRA                     L"Av1MaxQIndex_Intra"               // amf_int64; default = depends on USAGE; Max QIndex for intra frames; range = 1-255
++#define AMF_VIDEO_ENCODER_AV1_MIN_Q_INDEX_INTER                     L"Av1MinQIndex_Inter"               // amf_int64; default = depends on USAGE; Min QIndex for inter frames; range = 1-255
++#define AMF_VIDEO_ENCODER_AV1_MAX_Q_INDEX_INTER                     L"Av1MaxQIndex_Inter"               // amf_int64; default = depends on USAGE; Max QIndex for inter frames; range = 1-255
+ 
+-#define AMF_VIDEO_ENCODER_AV1_Q_INDEX_INTRA                         L"Av1QIndex_Intra"                  // amf_int64; default = depends on USAGE; intra-frame QIndex; range = 0-255
+-#define AMF_VIDEO_ENCODER_AV1_Q_INDEX_INTER                         L"Av1QIndex_Inter"                  // amf_int64; default = depends on USAGE; inter-frame QIndex; range = 0-255
++#define AMF_VIDEO_ENCODER_AV1_Q_INDEX_INTRA                         L"Av1QIndex_Intra"                  // amf_int64; default = depends on USAGE; intra-frame QIndex; range = 1-255
++#define AMF_VIDEO_ENCODER_AV1_Q_INDEX_INTER                         L"Av1QIndex_Inter"                  // amf_int64; default = depends on USAGE; inter-frame QIndex; range = 1-255
+ 
+ #define AMF_VIDEO_ENCODER_AV1_RATE_CONTROL_SKIP_FRAME               L"Av1RateControlSkipFrameEnable"    // bool; default = depends on USAGE; If true, rate control may code skip frame when needed; if false, rate control will not code skip frame.
+ 
+ 
+ // Picture Management Configuration
+ #define AMF_VIDEO_ENCODER_AV1_GOP_SIZE                              L"Av1GOPSize"                       // amf_int64; default = depends on USAGE; GOP Size (distance between automatically inserted key frames). If 0, key frame will be inserted at first frame only. Note that GOP may be interrupted by AMF_VIDEO_ENCODER_AV1_FORCE_FRAME_TYPE.
++#define AMF_VIDEO_ENCODER_AV1_INTRA_PERIOD                          L"Av1IntraPeriod"                   // amf_int64; default = 0; Intra period in frames.
+ #define AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE                 L"Av1HeaderInsertionMode"           // amf_int64(AMF_VIDEO_ENCODER_AV1_HEADER_INSERTION_MODE_ENUM); default = depends on USAGE; sequence header insertion mode
+ #define AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INSERTION_MODE           L"Av1SwitchFrameInsertionMode"      // amf_int64(AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INSERTION_MODE_ENUM); default = depends on USAGE; switch frame insertin mode
+ #define AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INTERVAL                 L"Av1SwitchFrameInterval"           // amf_int64; default = depends on USAGE; the interval between two inserted switch frames. Valid only when AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INSERTION_MODE is AMF_VIDEO_ENCODER_AV1_SWITCH_FRAME_INSERTION_MODE_FIXED_INTERVAL.
+@@ -276,25 +297,70 @@ enum AMF_VIDEO_ENCODER_AV1_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_AV1_FORCE_INSERT_SEQUENCE_HEADER          L"Av1ForceInsertSequenceHeader"     // bool; default = false; If true, force insert sequence header with current frame;
+ #define AMF_VIDEO_ENCODER_AV1_MARK_CURRENT_WITH_LTR_INDEX           L"Av1MarkCurrentWithLTRIndex"       // amf_int64; default = N/A; Mark current frame with LTR index
+ #define AMF_VIDEO_ENCODER_AV1_FORCE_LTR_REFERENCE_BITFIELD          L"Av1ForceLTRReferenceBitfield"     // amf_int64; default = 0; force LTR bit-field
+-#define AMF_VIDEO_ENCODER_AV1_ROI_DATA                              L"Av1ROIData"					    // 2D AMFSurface, surface format: AMF_SURFACE_GRAY32
++#define AMF_VIDEO_ENCODER_AV1_ROI_DATA                              L"Av1ROIData"                       // 2D AMFSurface, surface format: AMF_SURFACE_GRAY32; Importance value for each 64x64 block ranges from `0` (least important) to `10` (most important), stored in 32bit unsigned format
++#define AMF_VIDEO_ENCODER_AV1_PSNR_FEEDBACK                         L"Av1PSNRFeedback"             // amf_bool; default = false; Signal encoder to calculate PSNR score
++#define AMF_VIDEO_ENCODER_AV1_SSIM_FEEDBACK                         L"Av1SSIMFeedback"             // amf_bool; default = false; Signal encoder to calculate SSIM score
++#define AMF_VIDEO_ENCODER_AV1_STATISTICS_FEEDBACK                   L"Av1StatisticsFeedback"       // amf_bool; default = false; Signal encoder to collect and feedback encoder statistics
++#define AMF_VIDEO_ENCODER_AV1_BLOCK_Q_INDEX_FEEDBACK                L"Av1BlockQIndexFeedback"      // amf_bool; default = false; Signal encoder to collect and feedback block level QIndex values
+ 
+ // Encode output parameters
+ #define AMF_VIDEO_ENCODER_AV1_OUTPUT_FRAME_TYPE                     L"Av1OutputFrameType"               // amf_int64(AMF_VIDEO_ENCODER_AV1_OUTPUT_FRAME_TYPE_ENUM); default = N/A
+ #define AMF_VIDEO_ENCODER_AV1_OUTPUT_MARKED_LTR_INDEX               L"Av1MarkedLTRIndex"                // amf_int64; default = N/A; Marked LTR index
+ #define AMF_VIDEO_ENCODER_AV1_OUTPUT_REFERENCED_LTR_INDEX_BITFIELD  L"Av1ReferencedLTRIndexBitfield"    // amf_int64; default = N/A; referenced LTR bit-field
++#define AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE                    L"AV1OutputBufferType"              // amf_int64(AMF_VIDEO_ENCODER_AV1_OUTPUT_BUFFER_TYPE_ENUM); encoder output buffer type
++#define AMF_VIDEO_ENCODER_AV1_RECONSTRUCTED_PICTURE                 L"Av1ReconstructedPicture"     // AMFInterface(AMFSurface); returns reconstructed picture as an AMFSurface attached to the output buffer as property AMF_VIDEO_ENCODER_RECONSTRUCTED_PICTURE of AMFInterface type
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PSNR_Y                      L"Av1PSNRY"                        // double; PSNR Y
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PSNR_U                      L"Av1PSNRU"                        // double; PSNR U
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PSNR_V                      L"Av1PSNRV"                        // double; PSNR V
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PSNR_ALL                    L"Av1PSNRALL"                      // double; PSNR All
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SSIM_Y                      L"Av1SSIMY"                        // double; SSIM Y
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SSIM_U                      L"Av1SSIMU"                        // double; SSIM U
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SSIM_V                      L"Av1SSIMV"                        // double; SSIM V
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SSIM_ALL                    L"Av1SSIMALL"                      // double; SSIM ALL
++// Encoder statistics feedback
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_FRAME_Q_INDEX               L"Av1StatisticsFeedbackFrameQIndex"            // amf_int64; Rate control base frame/initial QIndex
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_AVERAGE_Q_INDEX             L"Av1StatisticsFeedbackAvgQIndex"              // amf_int64; Average QIndex of all encoded SBs in a picture. Value may be different from the one reported by bitstream analyzer when there are skipped SBs.
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_MAX_Q_INDEX                 L"Av1StatisticsFeedbackMaxQIndex"              // amf_int64; Max QIndex among all encoded SBs in a picture. Value may be different from the one reported by bitstream analyzer when there are skipped SBs.
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_MIN_Q_INDEX                 L"Av1StatisticsFeedbackMinQIndex"              // amf_int64; Min QIndex among all encoded SBs in a picture. Value may be different from the one reported by bitstream analyzer when there are skipped SBs.
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PIX_NUM_INTRA               L"Av1StatisticsFeedbackPixNumIntra"            // amf_int64; Number of the intra encoded pixels
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PIX_NUM_INTER               L"Av1StatisticsFeedbackPixNumInter"            // amf_int64; Number of the inter encoded pixels
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_PIX_NUM_SKIP                L"Av1StatisticsFeedbackPixNumSkip"             // amf_int64; Number of the skip mode pixels
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_BITCOUNT_RESIDUAL           L"Av1StatisticsFeedbackBitcountResidual"       // amf_int64; The bit count that corresponds to residual data
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_BITCOUNT_MOTION             L"Av1StatisticsFeedbackBitcountMotion"         // amf_int64; The bit count that corresponds to motion vectors
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_BITCOUNT_INTER              L"Av1StatisticsFeedbackBitcountInter"          // amf_int64; The bit count that are assigned to inter SBs
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_BITCOUNT_INTRA              L"Av1StatisticsFeedbackBitcountIntra"          // amf_int64; The bit count that are assigned to intra SBs
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_BITCOUNT_ALL_MINUS_HEADER   L"Av1StatisticsFeedbackBitcountAllMinusHeader" // amf_int64; The bit count of the bitstream excluding header
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_MV_X                        L"Av1StatisticsFeedbackMvX"                    // amf_int64; Accumulated absolute values of horizontal MV's
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_MV_Y                        L"Av1StatisticsFeedbackMvY"                    // amf_int64; Accumulated absolute values of vertical MV's
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_RD_COST_FINAL               L"Av1StatisticsFeedbackRdCostFinal"            // amf_int64; Frame level final RD cost for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_RD_COST_INTRA               L"Av1StatisticsFeedbackRdCostIntra"            // amf_int64; Frame level intra RD cost for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_RD_COST_INTER               L"Av1StatisticsFeedbackRdCostInter"            // amf_int64; Frame level inter RD cost for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SAD_FINAL                   L"Av1StatisticsFeedbackSadFinal"               // amf_int64; Frame level final SAD for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SAD_INTRA                   L"Av1StatisticsFeedbackSadIntra"               // amf_int64; Frame level intra SAD for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SAD_INTER                   L"Av1StatisticsFeedbackSadInter"               // amf_int64; Frame level inter SAD for full encoding
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_SSE                         L"Av1StatisticsFeedbackSSE"                    // amf_int64; Frame level SSE (only calculated for AV1)
++#define AMF_VIDEO_ENCODER_AV1_STATISTIC_VARIANCE                    L"Av1StatisticsFeedbackVariance"               // amf_int64; Frame level variance for full encoding
++
++    // Encoder block level feedback
++#define AMF_VIDEO_ENCODER_AV1_BLOCK_Q_INDEX_MAP                     L"Av1BlockQIndexMap"                               // AMFInterface(AMFSurface); AMFSurface of format AMF_SURFACE_GRAY32 containing block level QIndex values
+ 
+ // AV1 Encoder capabilities - exposed in AMFCaps interface
+ #define AMF_VIDEO_ENCODER_AV1_CAP_NUM_OF_HW_INSTANCES               L"Av1CapNumOfHwInstances"           // amf_int64; default = N/A; number of HW encoder instances
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_THROUGHPUT                    L"Av1CapMaxThroughput"              // amf_int64; default = N/A; MAX throughput for AV1 encoder in MB (16 x 16 pixel)
+ #define AMF_VIDEO_ENCODER_AV1_CAP_REQUESTED_THROUGHPUT              L"Av1CapRequestedThroughput"        // amf_int64; default = N/A; Currently total requested throughput for AV1 encode in MB (16 x 16 pixel)
+-#define AMF_VIDEO_ENCODER_AV1_CAP_COLOR_CONVERSION                  L"Av1CapColorConversion"            // amf_int64(AMF_ACCELERATION_TYPE); default = N/A; type of supported color conversion. default AMF_ACCEL_GPU
+-#define AMF_VIDEO_ENCODER_AV1_CAP_PRE_ANALYSIS                      L"Av1PreAnalysis"                    // amf_bool - pre analysis module is available for AV1 UVE encoder, n/a for the other encoders
++#define AMF_VIDEO_ENCODER_AV1_CAP_COLOR_CONVERSION                  L"Av1CapColorConversion"            // amf_int64(AMF_ACCELERATION_TYPE); default = N/A; type of supported color conversion.
++#define AMF_VIDEO_ENCODER_AV1_CAP_PRE_ANALYSIS                      L"Av1PreAnalysis"                   // amf_bool - pre analysis module is available.
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_BITRATE                       L"Av1MaxBitrate"                    // amf_int64; default = N/A; Maximum bit rate in bits
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_PROFILE                       L"Av1MaxProfile"                    // amf_int64(AMF_VIDEO_ENCODER_AV1_PROFILE_ENUM); default = N/A; max value of code profile
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_LEVEL                         L"Av1MaxLevel"                      // amf_int64(AMF_VIDEO_ENCODER_AV1_LEVEL_ENUM); default = N/A; max value of codec level
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_NUM_TEMPORAL_LAYERS           L"Av1CapMaxNumTemporalLayers"       // amf_int64; default = N/A; The cap of maximum number of temporal layers
+ #define AMF_VIDEO_ENCODER_AV1_CAP_MAX_NUM_LTR_FRAMES                L"Av1CapMaxNumLTRFrames"            // amf_int64; default = N/A; The cap of maximum number of LTR frames. This value is calculated based on current value of AMF_VIDEO_ENCODER_AV1_MAX_NUM_TEMPORAL_LAYERS.
++#define AMF_VIDEO_ENCODER_AV1_CAP_SUPPORT_TILE_OUTPUT               L"AV1SupportTileOutput"             // amf_bool; if tile output is supported
+ 
+-#define AMF_VIDEO_ENCODER_AV1_ENABLE_SMART_ACCESS_VIDEO             L"Av1EnableEncoderSmartAccessVideo" // amf_bool; default = false; true = enables smart access video feature
++#define AMF_VIDEO_ENCODER_AV1_CAP_SUPPORT_SMART_ACCESS_VIDEO        L"Av1EncoderSupportSmartAccessVideo"    // amf_bool; returns true if system supports SmartAccess Video
++#define AMF_VIDEO_ENCODER_AV1_CAP_WIDTH_ALIGNMENT_FACTOR            L"Av1WidthAlignmentFactor"          // amf_int64; default = 1; The encoder capability for width alignment
++#define AMF_VIDEO_ENCODER_AV1_CAP_HEIGHT_ALIGNMENT_FACTOR           L"Av1HeightAlignmentFactor"         // amf_int64; default = 1; The encoder capability for height alignment
++
++#define AMF_VIDEO_ENCODER_AV1_MULTI_HW_INSTANCE_ENCODE              L"Av1MultiHwInstanceEncode"             // amf_bool; flag to enable AV1 multi VCN encode.
+ 
+ #endif //#ifndef AMF_VideoEncoderAV1_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderHEVC.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderHEVC.h
+index 848c85aa85..5097bb2774 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderHEVC.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderHEVC.h
+@@ -113,7 +113,8 @@ enum AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_ENUM
+ {
+     AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_NONE = 0,
+     AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_GOP_ALIGNED,
+-    AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_IDR_ALIGNED
++    AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_IDR_ALIGNED,
++    AMF_VIDEO_ENCODER_HEVC_HEADER_INSERTION_MODE_SUPPRESSED
+ };
+ 
+ enum AMF_VIDEO_ENCODER_HEVC_PICTURE_TRANSFER_MODE_ENUM
+@@ -134,6 +135,19 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+     AMF_VIDEO_ENCODER_HEVC_LTR_MODE_KEEP_UNUSED
+ };
+ 
++enum AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE_ENUM
++{
++    AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE_FRAME = 0,
++    AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE_SLICE = 1
++};
++
++enum AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE_ENUM
++{
++    AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE_FRAME = 0,
++    AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE_SLICE = 1,
++    AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE_SLICE_LAST = 2
++};
++
+ // Static properties - can be set before Init()
+ #define AMF_VIDEO_ENCODER_HEVC_INSTANCE_INDEX                       L"HevcEncoderInstance"          // amf_int64; selected instance idx
+ #define AMF_VIDEO_ENCODER_HEVC_FRAMESIZE                            L"HevcFrameSize"                // AMFSize; default = 0,0; Frame size
+@@ -170,7 +184,7 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_HEVC_HIGH_MOTION_QUALITY_BOOST_ENABLE     L"HevcHighMotionQualityBoostEnable"// bool; default = depends on USAGE; Enable High motion quality boost mode
+ 
+ #define AMF_VIDEO_ENCODER_HEVC_PREENCODE_ENABLE                     L"HevcRateControlPreAnalysisEnable"  // bool; default =  depends on USAGE; enables pre-encode assisted rate control
+-#define AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_PREANALYSIS_ENABLE      L"HevcRateControlPreAnalysisEnable"  // bool; default =  depends on USAGE; enables pre-encode assisted rate control. Deprecated, please use AMF_VIDEO_ENCODER_PREENCODE_ENABLE instead.
++#define AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_PREANALYSIS_ENABLE      L"HevcRateControlPreAnalysisEnable"  // bool; default =  depends on USAGE; enables pre-encode assisted rate control. Deprecated, please use AMF_VIDEO_ENCODER_HEVC_PREENCODE_ENABLE instead.
+ #ifdef _MSC_VER
+     #ifndef __clang__
+         #pragma deprecated("AMF_VIDEO_ENCODER_HEVC_RATE_CONTROL_PREANALYSIS_ENABLE")
+@@ -192,6 +206,9 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_HEVC_OUTPUT_TRANSFER_CHARACTERISTIC       L"HevcOutColorTransferChar"     // amf_int64(AMF_COLOR_TRANSFER_CHARACTERISTIC_ENUM); default = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED, ISO/IEC 23001-8_2013 ?7.2 See VideoDecoderUVD.h for enum
+ #define AMF_VIDEO_ENCODER_HEVC_OUTPUT_COLOR_PRIMARIES               L"HevcOutColorPrimaries"        // amf_int64(AMF_COLOR_PRIMARIES_ENUM); default = AMF_COLOR_PRIMARIES_UNDEFINED, ISO/IEC 23001-8_2013 section 7.1 See ColorSpace.h for enum
+ 
++// Slice output
++#define AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE                          L"HevcOutputMode"               // amf_int64(AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE_ENUM); default = AMF_VIDEO_ENCODER_HEVC_OUTPUT_MODE_FRAME - defines encoder output mode
++
+ // Dynamic properties - can be set at any time
+ 
+ // Rate control properties
+@@ -226,8 +243,11 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ 
+ // misc
+ #define AMF_VIDEO_ENCODER_HEVC_QUERY_TIMEOUT                        L"HevcQueryTimeout"             // amf_int64; default = 0 (no wait); timeout for QueryOutput call in ms.
++#define AMF_VIDEO_ENCODER_HEVC_MEMORY_TYPE                          L"HevcEncoderMemoryType"        // amf_int64(AMF_MEMORY_TYPE) , default is AMF_MEMORY_UNKNOWN, Values : AMF_MEMORY_DX11, AMF_MEMORY_DX9, AMF_MEMORY_UNKNOWN (auto)
++#define AMF_VIDEO_ENCODER_HEVC_ENABLE_SMART_ACCESS_VIDEO            L"HevcEnableEncoderSmartAccessVideo"         // amf_bool; default = false; true = enables smart access video feature
++#define AMF_VIDEO_ENCODER_HEVC_INPUT_QUEUE_SIZE                     L"HevcInputQueueSize"           // amf_int64; default 16; Set amf input queue size
+ 
+-// Per-submittion properties - can be set on input surface interface
++// Per-submission properties - can be set on input surface interface
+ #define AMF_VIDEO_ENCODER_HEVC_END_OF_SEQUENCE                      L"HevcEndOfSequence"            // bool; default = false; generate end of sequence
+ #define AMF_VIDEO_ENCODER_HEVC_FORCE_PICTURE_TYPE                   L"HevcForcePictureType"         // amf_int64(AMF_VIDEO_ENCODER_HEVC_PICTURE_TYPE_ENUM); default = AMF_VIDEO_ENCODER_HEVC_PICTURE_TYPE_NONE; generate particular picture type
+ #define AMF_VIDEO_ENCODER_HEVC_INSERT_AUD                           L"HevcInsertAUD"                // bool; default = false; insert AUD
+@@ -235,7 +255,7 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ 
+ #define AMF_VIDEO_ENCODER_HEVC_MARK_CURRENT_WITH_LTR_INDEX          L"HevcMarkCurrentWithLTRIndex"  // amf_int64; default = N/A; Mark current frame with LTR index
+ #define AMF_VIDEO_ENCODER_HEVC_FORCE_LTR_REFERENCE_BITFIELD         L"HevcForceLTRReferenceBitfield"// amf_int64; default = 0; force LTR bit-field
+-#define AMF_VIDEO_ENCODER_HEVC_ROI_DATA                             L"HevcROIData"					// 2D AMFSurface, surface format: AMF_SURFACE_GRAY32
++#define AMF_VIDEO_ENCODER_HEVC_ROI_DATA                             L"HevcROIData"					// 2D AMFSurface, surface format: AMF_SURFACE_GRAY32; Importance value for each 64x64 block ranges from `0` (least important) to `10` (most important), stored in 32bit unsigned format.
+ #define AMF_VIDEO_ENCODER_HEVC_REFERENCE_PICTURE                    L"HevcReferencePicture"         // AMFInterface(AMFSurface); surface used for frame injection
+ #define AMF_VIDEO_ENCODER_HEVC_PSNR_FEEDBACK                        L"HevcPSNRFeedback"             // amf_bool; default = false; Signal encoder to calculate PSNR score
+ #define AMF_VIDEO_ENCODER_HEVC_SSIM_FEEDBACK                        L"HevcSSIMFeedback"             // amf_bool; default = false; Signal encoder to calculate SSIM score
+@@ -247,6 +267,7 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_HEVC_OUTPUT_MARKED_LTR_INDEX              L"HevcMarkedLTRIndex"           // amf_int64; default = -1; Marked LTR index
+ #define AMF_VIDEO_ENCODER_HEVC_OUTPUT_REFERENCED_LTR_INDEX_BITFIELD L"HevcReferencedLTRIndexBitfield"// amf_int64; default = 0; referenced LTR bit-field
+ #define AMF_VIDEO_ENCODER_HEVC_OUTPUT_TEMPORAL_LAYER                L"HevcOutputTemporalLayer"      // amf_int64; Temporal layer
++#define AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE                   L"HevcOutputBufferType"         // amf_int64(AMF_VIDEO_ENCODER_HEVC_OUTPUT_BUFFER_TYPE_ENUM); encoder output buffer type
+ #define AMF_VIDEO_ENCODER_HEVC_RECONSTRUCTED_PICTURE                L"HevcReconstructedPicture"     // AMFInterface(AMFSurface); returns reconstructed picture as an AMFSurface attached to the output buffer as property AMF_VIDEO_ENCODER_RECONSTRUCTED_PICTURE of AMFInterface type
+ #define AMF_VIDEO_ENCODER_HEVC_STATISTIC_PSNR_Y                     L"PSNRY"                        // double; PSNR Y
+ #define AMF_VIDEO_ENCODER_HEVC_STATISTIC_PSNR_U                     L"PSNRU"                        // double; PSNR U
+@@ -278,6 +299,7 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_HEVC_STATISTIC_SAD_FINAL                  L"HevcStatisticsFeedbackSadFinal"               // amf_int64; Frame level final SAD for full encoding
+ #define AMF_VIDEO_ENCODER_HEVC_STATISTIC_SAD_INTRA                  L"HevcStatisticsFeedbackSadIntra"               // amf_int64; Frame level intra SAD for full encoding
+ #define AMF_VIDEO_ENCODER_HEVC_STATISTIC_SAD_INTER                  L"HevcStatisticsFeedbackSadInter"               // amf_int64; Frame level inter SAD for full encoding
++#define AMF_VIDEO_ENCODER_HEVC_STATISTIC_VARIANCE                   L"HevcStatisticsFeedbackVariance"               // amf_int64; Frame level variance for full encoding
+ 
+     // Encoder block level feedback
+ #define AMF_VIDEO_ENCODER_HEVC_BLOCK_QP_MAP                         L"HevcBlockQpMap"                               // AMFInterface(AMFSurface); AMFSurface of format AMF_SURFACE_GRAY32 containing block level QP values
+@@ -293,15 +315,16 @@ enum AMF_VIDEO_ENCODER_HEVC_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_HEVC_CAP_MAX_TEMPORAL_LAYERS              L"HevcMaxTemporalLayers"        // amf_int64 maximum number of temporal layers
+ #define AMF_VIDEO_ENCODER_HEVC_CAP_NUM_OF_HW_INSTANCES              L"HevcNumOfHwInstances"         // amf_int64 number of HW encoder instances
+ #define AMF_VIDEO_ENCODER_HEVC_CAP_COLOR_CONVERSION                 L"HevcColorConversion"          // amf_int64(AMF_ACCELERATION_TYPE) - type of supported color conversion. default AMF_ACCEL_GPU
+-#define AMF_VIDEO_ENCODER_HEVC_CAP_PRE_ANALYSIS                     L"HevcPreAnalysis"              // amf_bool - pre analysis module is available for HEVC UVE encoder, n/a for the other encoders
+-#define AMF_VIDEO_ENCODER_HEVC_CAP_ROI                              L"HevcROIMap"                   // amf_bool - ROI map support is available for HEVC UVE encoder, n/a for the other encoders
++#define AMF_VIDEO_ENCODER_HEVC_CAP_PRE_ANALYSIS                     L"HevcPreAnalysis"              // amf_bool - pre analysis module is available.
++#define AMF_VIDEO_ENCODER_HEVC_CAP_ROI                              L"HevcROIMap"                   // amf_bool - ROI map support is available.
+ #define AMF_VIDEO_ENCODER_HEVC_CAP_MAX_THROUGHPUT                   L"HevcMaxThroughput"            // amf_int64 - MAX throughput for HEVC encoder in MB (16 x 16 pixel)
+ #define AMF_VIDEO_ENCODER_HEVC_CAP_REQUESTED_THROUGHPUT             L"HevcRequestedThroughput"      // amf_int64 - Currently total requested throughput for HEVC encode in MB (16 x 16 pixel)
+-#define AMF_VIDEO_ENCODER_CAPS_HEVC_QUERY_TIMEOUT_SUPPORT           L"HevcQueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutout call
++#define AMF_VIDEO_ENCODER_HEVC_CAP_QUERY_TIMEOUT_SUPPORT            L"HevcQueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutput call
++#define AMF_VIDEO_ENCODER_CAPS_HEVC_QUERY_TIMEOUT_SUPPORT           L"HevcQueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutput call (Deprecated, please use AMF_VIDEO_ENCODER_HEVC_CAP_QUERY_TIMEOUT_SUPPORT instead)
++#define AMF_VIDEO_ENCODER_HEVC_CAP_SUPPORT_SLICE_OUTPUT             L"HevcSupportSliceOutput"       // amf_bool - if slice output is supported
+ 
+-// properties set on AMFComponent to control component creation
+-#define AMF_VIDEO_ENCODER_HEVC_MEMORY_TYPE                          L"HevcEncoderMemoryType"        // amf_int64(AMF_MEMORY_TYPE) , default is AMF_MEMORY_UNKNOWN, Values : AMF_MEMORY_DX11, AMF_MEMORY_DX9, AMF_MEMORY_UNKNOWN (auto)
++#define AMF_VIDEO_ENCODER_HEVC_CAP_SUPPORT_SMART_ACCESS_VIDEO       L"HevcEncoderSupportSmartAccessVideo"        // amf_bool; returns true if system supports SmartAccess Video
+ 
+-#define AMF_VIDEO_ENCODER_HEVC_ENABLE_SMART_ACCESS_VIDEO            L"HevcEnableEncoderSmartAccessVideo"         // amf_bool; default = false; true = enables smart access video feature
++#define AMF_VIDEO_ENCODER_HEVC_MULTI_HW_INSTANCE_ENCODE             L"HevcMultiHwInstanceEncode"      // amf_bool; flag to enable multi VCN encode.
+ 
+ #endif //#ifndef AMF_VideoEncoderHEVC_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderVCE.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderVCE.h
+index ba0387e45a..a86fba518c 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderVCE.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/components/VideoEncoderVCE.h
+@@ -166,6 +166,18 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+     AMF_VIDEO_ENCODER_LTR_MODE_KEEP_UNUSED
+ };
+ 
++enum AMF_VIDEO_ENCODER_OUTPUT_MODE_ENUM
++{
++    AMF_VIDEO_ENCODER_OUTPUT_MODE_FRAME = 0,
++    AMF_VIDEO_ENCODER_OUTPUT_MODE_SLICE = 1
++};
++
++enum AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE_ENUM
++{
++    AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE_FRAME      = 0,
++    AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE_SLICE      = 1,
++    AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE_SLICE_LAST = 2
++};
+ 
+ // Static properties - can be set before Init()
+ #define AMF_VIDEO_ENCODER_INSTANCE_INDEX                        L"EncoderInstance"          // amf_int64; selected HW instance idx
+@@ -211,6 +223,9 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_OUTPUT_COLOR_PRIMARIES                L"OutColorPrimaries"        // amf_int64(AMF_COLOR_PRIMARIES_ENUM); default = AMF_COLOR_PRIMARIES_UNDEFINED, ISO/IEC 23001-8_2013 Section 7.1 See ColorSpace.h for enum
+ #define AMF_VIDEO_ENCODER_OUTPUT_HDR_METADATA                   L"OutHDRMetadata"           // AMFBuffer containing AMFHDRMetadata; default NULL
+ 
++// Slice output
++#define AMF_VIDEO_ENCODER_OUTPUT_MODE                           L"OutputMode"               // amf_int64(AMF_VIDEO_ENCODER_OUTPUT_MODE_ENUM); default = AMF_VIDEO_ENCODER_OUTPUT_MODE_FRAME - defines encoder output mode
++
+ 
+ // Dynamic properties - can be set at any time
+    // Rate control properties
+@@ -240,10 +255,11 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ 
+     // Picture control properties
+ #define AMF_VIDEO_ENCODER_HEADER_INSERTION_SPACING              L"HeaderInsertionSpacing"   // amf_int64; default = depends on USAGE; Header Insertion Spacing; range 0-1000
+-#define AMF_VIDEO_ENCODER_B_PIC_PATTERN                         L"BPicturesPattern"         // amf_int64; default = 3; B-picture Pattern (number of B-Frames)
++#define AMF_VIDEO_ENCODER_B_PIC_PATTERN                         L"BPicturesPattern"         // amf_int64; default = 0; B-picture Pattern (number of B-Frames)
+ #define AMF_VIDEO_ENCODER_DE_BLOCKING_FILTER                    L"DeBlockingFilter"         // bool; default = depends on USAGE; De-blocking Filter
+ #define AMF_VIDEO_ENCODER_B_REFERENCE_ENABLE                    L"BReferenceEnable"         // bool; default = true; Enable Refrence to B-frames
+ #define AMF_VIDEO_ENCODER_IDR_PERIOD                            L"IDRPeriod"                // amf_int64; default = depends on USAGE; IDR Period in frames
++#define AMF_VIDEO_ENCODER_INTRA_PERIOD                          L"IntraPeriod"              // amf_int64; default = 0; Intra period in frames
+ #define AMF_VIDEO_ENCODER_INTRA_REFRESH_NUM_MBS_PER_SLOT        L"IntraRefreshMBsNumberPerSlot" // amf_int64; default = depends on USAGE; Intra Refresh MBs Number Per Slot in Macroblocks
+ #define AMF_VIDEO_ENCODER_SLICES_PER_FRAME                      L"SlicesPerFrame"           // amf_int64; default = 1; Number of slices Per Frame
+ #define AMF_VIDEO_ENCODER_CABAC_ENABLE                          L"CABACEnable"              // amf_int64(AMF_VIDEO_ENCODER_CODING_ENUM) default = AMF_VIDEO_ENCODER_UNDEFINED
+@@ -260,8 +276,11 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_PICTURE_TRANSFER_MODE                 L"PicTransferMode"               // amf_int64(AMF_VIDEO_ENCODER_PICTURE_TRANSFER_MODE_ENUM); default = AMF_VIDEO_ENCODER_PICTURE_TRANSFER_MODE_OFF - whether to exchange reference/reconstructed pic between encoder and application
+     // misc
+ #define AMF_VIDEO_ENCODER_QUERY_TIMEOUT                         L"QueryTimeout"             // amf_int64; default = 0 (no wait); timeout for QueryOutput call in ms.
++#define AMF_VIDEO_ENCODER_MEMORY_TYPE                           L"EncoderMemoryType"        // amf_int64(AMF_MEMORY_TYPE) , default is AMF_MEMORY_UNKNOWN, Values : AMF_MEMORY_DX11, AMF_MEMORY_DX9, AMF_MEMORY_VULKAN or AMF_MEMORY_UNKNOWN (auto)
++#define AMF_VIDEO_ENCODER_ENABLE_SMART_ACCESS_VIDEO             L"EnableEncoderSmartAccessVideo"         // amf_bool; default = false; true = enables smart access video feature
++#define  AMF_VIDEO_ENCODER_INPUT_QUEUE_SIZE                     L"InputQueueSize"           // amf_int64; default 16; Set amf input queue size
+ 
+-// Per-submittion properties - can be set on input surface interface
++// Per-submission properties - can be set on input surface interface
+ #define AMF_VIDEO_ENCODER_END_OF_SEQUENCE                       L"EndOfSequence"            // bool; default = false; generate end of sequence
+ #define AMF_VIDEO_ENCODER_END_OF_STREAM                         L"EndOfStream"              // bool; default = false; generate end of stream
+ #define AMF_VIDEO_ENCODER_FORCE_PICTURE_TYPE                    L"ForcePictureType"         // amf_int64(AMF_VIDEO_ENCODER_PICTURE_TYPE_ENUM); default = AMF_VIDEO_ENCODER_PICTURE_TYPE_NONE; generate particular picture type
+@@ -271,7 +290,7 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_PICTURE_STRUCTURE                     L"PictureStructure"         // amf_int64(AMF_VIDEO_ENCODER_PICTURE_STRUCTURE_ENUM); default = AMF_VIDEO_ENCODER_PICTURE_STRUCTURE_FRAME; indicate picture type
+ #define AMF_VIDEO_ENCODER_MARK_CURRENT_WITH_LTR_INDEX           L"MarkCurrentWithLTRIndex"  // //amf_int64; default = N/A; Mark current frame with LTR index
+ #define AMF_VIDEO_ENCODER_FORCE_LTR_REFERENCE_BITFIELD          L"ForceLTRReferenceBitfield"// amf_int64; default = 0; force LTR bit-field
+-#define AMF_VIDEO_ENCODER_ROI_DATA                              L"ROIData"                  // 2D AMFSurface, surface format: AMF_SURFACE_GRAY32
++#define AMF_VIDEO_ENCODER_ROI_DATA                              L"ROIData"                  // 2D AMFSurface, surface format: AMF_SURFACE_GRAY32; Importance value for each 16x16 macro block ranges from `0` (least important) to `10` (most important), stored in 32bit unsigned format.
+ #define AMF_VIDEO_ENCODER_REFERENCE_PICTURE                     L"ReferencePicture"         // AMFInterface(AMFSurface); surface used for frame injection
+ #define AMF_VIDEO_ENCODER_PSNR_FEEDBACK                         L"PSNRFeedback"             // amf_bool; default = false; Signal encoder to calculate PSNR score
+ #define AMF_VIDEO_ENCODER_SSIM_FEEDBACK                         L"SSIMFeedback"             // amf_bool; default = false; Signal encoder to calculate SSIM score
+@@ -284,6 +303,7 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_OUTPUT_MARKED_LTR_INDEX               L"MarkedLTRIndex"           //amf_int64; default = -1; Marked LTR index
+ #define AMF_VIDEO_ENCODER_OUTPUT_REFERENCED_LTR_INDEX_BITFIELD  L"ReferencedLTRIndexBitfield" // amf_int64; default = 0; referenced LTR bit-field
+ #define AMF_VIDEO_ENCODER_OUTPUT_TEMPORAL_LAYER                 L"OutputTemporalLayer"      // amf_int64; Temporal layer
++#define AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE                    L"OutputBufferType"         // amf_int64(AMF_VIDEO_ENCODER_OUTPUT_BUFFER_TYPE_ENUM); encoder output buffer type
+ #define AMF_VIDEO_ENCODER_PRESENTATION_TIME_STAMP               L"PresentationTimeStamp"    // amf_int64; Presentation time stamp (PTS)
+ #define AMF_VIDEO_ENCODER_RECONSTRUCTED_PICTURE                 L"ReconstructedPicture"     // AMFInterface(AMFSurface); returns reconstructed picture as an AMFSurface attached to the output buffer as property AMF_VIDEO_ENCODER_RECONSTRUCTED_PICTURE of AMFInterface type
+ #define AMF_VIDEO_ENCODER_STATISTIC_PSNR_Y                      L"PSNRY"                    // double; PSNR Y
+@@ -316,6 +336,7 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_STATISTIC_SATD_FINAL                  L"StatisticsFeedbackSatdFinal"              // amf_int64; Frame level final SATD for full encoding
+ #define AMF_VIDEO_ENCODER_STATISTIC_SATD_INTRA                  L"StatisticsFeedbackSatdIntra"              // amf_int64; Frame level intra SATD for full encoding
+ #define AMF_VIDEO_ENCODER_STATISTIC_SATD_INTER                  L"StatisticsFeedbackSatdInter"              // amf_int64; Frame level inter SATD for full encoding
++#define AMF_VIDEO_ENCODER_STATISTIC_VARIANCE                    L"StatisticsFeedbackVariance"               // amf_int64; Frame level variance for full encoding
+ 
+     // Encoder block level feedback
+ #define AMF_VIDEO_ENCODER_BLOCK_QP_MAP                          L"BlockQpMap"                               // AMFInterface(AMFSurface); AMFSurface of format AMF_SURFACE_GRAY32 containing block level QP values
+@@ -340,15 +361,15 @@ enum AMF_VIDEO_ENCODER_LTR_MODE_ENUM
+ #define AMF_VIDEO_ENCODER_CAP_FIXED_SLICE_MODE                  L"FixedSliceMode"           // bool  is fixed slice mode supported
+ #define AMF_VIDEO_ENCODER_CAP_NUM_OF_HW_INSTANCES               L"NumOfHwInstances"         // amf_int64 number of HW encoder instances
+ #define AMF_VIDEO_ENCODER_CAP_COLOR_CONVERSION                  L"ColorConversion"          // amf_int64(AMF_ACCELERATION_TYPE) - type of supported color conversion. default AMF_ACCEL_GPU
+-#define AMF_VIDEO_ENCODER_CAP_PRE_ANALYSIS                      L"PreAnalysis"              // amf_bool - pre analysis module is available for H264 UVE encoder, n/a for the other encoders
+-#define AMF_VIDEO_ENCODER_CAP_ROI                               L"ROIMap"                   // amf_bool - ROI map support is available for H264 UVE encoder, n/a for the other encoders
++#define AMF_VIDEO_ENCODER_CAP_PRE_ANALYSIS                      L"PreAnalysis"              // amf_bool - pre analysis module is available.
++#define AMF_VIDEO_ENCODER_CAP_ROI                               L"ROIMap"                   // amf_bool - ROI map support is available.
+ #define AMF_VIDEO_ENCODER_CAP_MAX_THROUGHPUT                    L"MaxThroughput"            // amf_int64 - MAX throughput for H264 encoder in MB (16 x 16 pixel)
+ #define AMF_VIDEO_ENCODER_CAP_REQUESTED_THROUGHPUT              L"RequestedThroughput"      // amf_int64 - Currently total requested throughput for H264 encoder in MB (16 x 16 pixel)
+-#define AMF_VIDEO_ENCODER_CAPS_QUERY_TIMEOUT_SUPPORT            L"QueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutout call
++#define AMF_VIDEO_ENCODER_CAPS_QUERY_TIMEOUT_SUPPORT            L"QueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutput call (Deprecated, please use AMF_VIDEO_ENCODER_CAP_QUERY_TIMEOUT_SUPPORT )
++#define AMF_VIDEO_ENCODER_CAP_QUERY_TIMEOUT_SUPPORT             L"QueryTimeoutSupport"      // amf_bool - Timeout supported for QueryOutput call
+ 
+-// properties set on AMFComponent to control component creation
+-#define AMF_VIDEO_ENCODER_MEMORY_TYPE                           L"EncoderMemoryType"        // amf_int64(AMF_MEMORY_TYPE) , default is AMF_MEMORY_UNKNOWN, Values : AMF_MEMORY_DX11, AMF_MEMORY_DX9, AMF_MEMORY_VULKAN or AMF_MEMORY_UNKNOWN (auto)
++#define AMF_VIDEO_ENCODER_CAP_SUPPORT_SLICE_OUTPUT              L"SupportSliceOutput"       // amf_bool - if slice output is supported
+ 
+-#define AMF_VIDEO_ENCODER_ENABLE_SMART_ACCESS_VIDEO             L"EnableEncoderSmartAccessVideo"         // amf_bool; default = false; true = enables smart access video feature
++#define AMF_VIDEO_ENCODER_CAP_SUPPORT_SMART_ACCESS_VIDEO        L"EncoderSupportSmartAccessVideo"        // amf_bool; returns true if system supports SmartAccess Video
+ 
+ #endif //#ifndef AMF_VideoEncoderVCE_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/AudioBuffer.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/AudioBuffer.h
+index 5f07dc4723..7382fc0c64 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/AudioBuffer.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/AudioBuffer.h
+@@ -150,9 +150,16 @@ namespace amf
+ #ifdef __clang__
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Woverloaded-virtual"
++#endif
++#ifdef __GNUC__
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+ #endif
+         virtual void                AMF_STD_CALL AddObserver(AMFAudioBufferObserver* pObserver) = 0;
+         virtual void                AMF_STD_CALL RemoveObserver(AMFAudioBufferObserver* pObserver) = 0;
++#ifdef __GNUC__
++#pragma GCC diagnostic pop
++#endif
+ #ifdef __clang__
+     #pragma clang diagnostic pop
+ #endif
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Buffer.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Buffer.h
+index 15c2907813..608c0a1da5 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Buffer.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Buffer.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -51,14 +51,16 @@ namespace amf
+     // bit mask
+     //----------------------------------------------------------------------------------------------
+     typedef enum AMF_BUFFER_USAGE_BITS
+-    {                                                      // D3D11                         D3D12                                       Vulkan 
+-        AMF_BUFFER_USAGE_DEFAULT           = 0x80000000,   // D3D11_USAGE_STAGING,                                                      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT 
++    {                                                      // D3D11                         D3D12                                       Vulkan
++        AMF_BUFFER_USAGE_DEFAULT           = 0x80000000,   // D3D11_USAGE_STAGING,                                                      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+         AMF_BUFFER_USAGE_NONE              = 0x00000000,   // 0                  ,          D3D12_RESOURCE_FLAG_NONE,                   0
+-        AMF_BUFFER_USAGE_CONSTANT          = 0x00000001,   // D3D11_BIND_CONSTANT_BUFFER,   											VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT 
++        AMF_BUFFER_USAGE_CONSTANT          = 0x00000001,   // D3D11_BIND_CONSTANT_BUFFER,   											VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+         AMF_BUFFER_USAGE_SHADER_RESOURCE   = 0x00000002,   // D3D11_BIND_SHADER_RESOURCE,   D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+         AMF_BUFFER_USAGE_UNORDERED_ACCESS  = 0x00000004,   // D3D11_BIND_UNORDERED_ACCESS,  D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+         AMF_BUFFER_USAGE_TRANSFER_SRC      = 0x00000008,   //                               								            VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+         AMF_BUFFER_USAGE_TRANSFER_DST      = 0x00000010,   //                               								            VK_BUFFER_USAGE_TRANSFER_DST_BIT
++        AMF_BUFFER_USAGE_NOSYNC            = 0x00000020,   //  							    no fence (AMFFenceGUID) created	            no semaphore (AMFVulkanSync::hSemaphore) created
++        AMF_BUFFER_USAGE_DECODER_SRC       = 0x00000040,   //                               								            VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR
+     } AMF_BUFFER_USAGE_BITS;
+     typedef amf_flags AMF_BUFFER_USAGE;
+     //----------------------------------------------------------------------------------------------
+@@ -108,8 +110,16 @@ namespace amf
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Woverloaded-virtual"
+ #endif
++#ifdef __GNUC__
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Woverloaded-virtual"
++#endif
++
+         virtual void                AMF_STD_CALL AddObserver(AMFBufferObserver* pObserver) = 0;
+         virtual void                AMF_STD_CALL RemoveObserver(AMFBufferObserver* pObserver) = 0;
++#ifdef __GNUC__
++#pragma GCC diagnostic pop
++#endif
+ #ifdef __clang__
+     #pragma clang diagnostic pop
+ #endif
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/CurrentTime.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/CurrentTime.h
+index dcbc35466a..c8a559ad9d 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/CurrentTime.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/CurrentTime.h
+@@ -38,6 +38,7 @@ namespace amf
+ 	class AMF_NO_VTABLE AMFCurrentTime : public AMFInterface
+ 	{
+ 	public:
++
+ 		virtual amf_pts AMF_STD_CALL Get() = 0;
+ 
+ 		virtual void AMF_STD_CALL Reset() = 0;
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/D3D12AMF.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/D3D12AMF.h
+index 37956b4c5f..7ad2d74f12 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/D3D12AMF.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/D3D12AMF.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -32,17 +32,22 @@
+ 
+ #ifndef __D3D12AMF_h__
+ #define __D3D12AMF_h__
+-#pragma once 
++#pragma once
+ #include "Platform.h"
+ #if defined(_WIN32)||(defined(__linux) && defined(AMF_WSL))
++
++#define AMFDX12_NUMBER_OF_DESCRYPTOR_HEAPS  L"NumberOfDescryptorHeaps" // amf_int64, default is 4, to be set on AMFContext
+ // syncronization properties set via SetPrivateData()
+-AMF_WEAK GUID  AMFResourceStateGUID = { 0x452da9bf, 0x4ad7, 0x47a5, { 0xa6, 0x9b, 0x96, 0xd3, 0x23, 0x76, 0xf2, 0xf3 } };   // Current resource state value (D3D12_RESOURCE_STATES ), sizeof(UINT), set on ID3D12Resource 
++AMF_WEAK GUID  AMFResourceStateGUID = { 0x452da9bf, 0x4ad7, 0x47a5, { 0xa6, 0x9b, 0x96, 0xd3, 0x23, 0x76, 0xf2, 0xf3 } };   // Current resource state value (D3D12_RESOURCE_STATES ), sizeof(UINT), set on ID3D12Resource
+ AMF_WEAK GUID  AMFFenceGUID         = { 0x910a7928, 0x57bd, 0x4b04, { 0x91, 0xa3, 0xe7, 0xb8, 0x04, 0x12, 0xcd, 0xa5 } };   // IUnknown (ID3D12Fence), set on ID3D12Resource  syncronization fence for this resource
+-AMF_WEAK GUID  AMFFenceValueGUID    = { 0x62a693d3, 0xbb4a, 0x46c9, { 0xa5, 0x04, 0x9a, 0x8e, 0x97, 0xbf, 0xf0, 0x56 } };   // The last value to wait on the fence from AMFFenceGUID; sizeof(UINT64), set on ID3D12Fence 
++AMF_WEAK GUID  AMFFenceValueGUID    = { 0x62a693d3, 0xbb4a, 0x46c9, { 0xa5, 0x04, 0x9a, 0x8e, 0x97, 0xbf, 0xf0, 0x56 } };   // The last value to wait on the fence from AMFFenceGUID; sizeof(UINT64), set on ID3D12Fence
++AMF_WEAK GUID  AMFResourceDecodeGUID= { 0x56bd5bde, 0x7c89, 0x45ff, {0xba, 0x5c, 0xc2, 0xd5, 0xea, 0x55, 0x8d, 0x1a } }; // UINT indicator that the surface is decode and surface state needs to be restored after change
+ 
++// deprecated - not used vlaues
+ AMF_WEAK GUID  AMFFenceD3D11GUID    = { 0xdffdf6e0, 0x85e0, 0x4645, { 0x9d, 0x7, 0xe6, 0x4a, 0x19, 0x6b, 0xc9, 0xbf } };   // IUnknown (ID3D11Fence) OpenSharedFence for interop
+ AMF_WEAK GUID  AMFFenceValueD3D11GUID    = { 0x86581b71, 0x699f, 0x484b, { 0xb8, 0x75, 0x24, 0xda, 0x49, 0x8a, 0x74, 0xcf } };   // last value to wait on in d3d11
+ AMF_WEAK GUID  AMFSharedHandleFenceGUID = { 0xca60dcc8, 0x76d1, 0x4088, 0xad, 0xd, 0x97, 0x71, 0xe7, 0xb0, 0x92, 0x49 };   // ID3D12Fence shared handle for D3D11 interop
++// end of deprecated
+ 
+ #endif
+ 
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Data.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Data.h
+index f32055a510..7067606b51 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Data.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Data.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -64,6 +64,7 @@ namespace amf
+         AMF_MEMORY_COMPUTE_FOR_DX11 = 9, // deprecated, the same as AMF_MEMORY_OPENCL
+         AMF_MEMORY_VULKAN           = 10,
+         AMF_MEMORY_DX12             = 11,
++        AMF_MEMORY_LAST
+     } AMF_MEMORY_TYPE;
+ 
+     //----------------------------------------------------------------------------------------------
+@@ -81,7 +82,7 @@ namespace amf
+     // bit mask
+     //----------------------------------------------------------------------------------------------
+     typedef enum AMF_MEMORY_CPU_ACCESS_BITS
+-    {                                           // D3D11                    D3D12                      Vulkan 
++    {                                           // D3D11                    D3D12                      Vulkan
+         AMF_MEMORY_CPU_DEFAULT  = 0x80000000,   // 0                     ,  D3D12_HEAP_TYPE_DEFAULT ,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+         AMF_MEMORY_CPU_NONE     = 0x00000000,   // 0                     ,  D3D12_HEAP_TYPE_DEFAULT ,
+         AMF_MEMORY_CPU_READ     = 0x00000001,   // D3D11_CPU_ACCESS_READ ,  D3D12_HEAP_TYPE_READBACK,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Interface.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Interface.h
+index 9ac7e41165..96117f0e80 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Interface.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Interface.h
+@@ -49,7 +49,7 @@ namespace amf
+         }
+ #else
+ #define AMF_DECLARE_IID(name, _data1, _data2, _data3, _data41, _data42, _data43, _data44, _data45, _data46, _data47, _data48) \
+-        AMF_INLINE static const AMFGuid IID_##name(void) \
++        AMF_INLINE static AMFGuid IID_##name(void) \
+         { \
+             AMFGuid uid = {_data1, _data2, _data3, _data41, _data42, _data43, _data44, _data45, _data46, _data47, _data48}; \
+             return uid; \
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Platform.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Platform.h
+index 3ead3aed4e..b1f81b2c9c 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Platform.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Platform.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -47,22 +47,41 @@
+             #define AMF_CORE_LINK __declspec(dllimport)
+         #endif
+     #endif
+-#elif defined(__linux)        
++#elif defined(__linux)
+         #if defined(AMF_CORE_EXPORTS)
+             #define AMF_CORE_LINK __attribute__((visibility("default")))
+         #else
+             #define AMF_CORE_LINK
+         #endif
+-#else 
++#else
+     #define AMF_CORE_LINK
+ #endif // #ifdef _WIN32
+ 
++#if defined(_DEBUG) && !defined(DEBUG) // prevents other headers to #define DEBUG without assigned value what causes failure in PAL build
++#define DEBUG 1
++#endif
++
+ #define AMF_MACRO_STRING2(x) #x
+ #define AMF_MACRO_STRING(x) AMF_MACRO_STRING2(x)
+ 
+ #define AMF_TODO(_todo) (__FILE__ "(" AMF_MACRO_STRING(__LINE__) "): TODO: "_todo)
+ 
+ 
++/**
++*******************************************************************************
++*   AMF_UNICODE
++*
++*   @brief
++*       Macro to convert string constant into wide char string constant
++*
++*   Auxilary AMF_UNICODE_ macro is needed as otherwise it is not possible to use AMF_UNICODE(__FILE__)
++*   Microsoft macro _T also uses 2 passes to accomplish that
++*******************************************************************************
++*/
++#define AMF_UNICODE(s) AMF_UNICODE_(s)
++#define AMF_UNICODE_(s) L ## s
++
++
+  #if defined(__GNUC__) || defined(__clang__)
+      #define AMF_ALIGN(n) __attribute__((aligned(n)))
+  #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+@@ -82,6 +101,12 @@ typedef signed int HRESULT;
+ #include <stdint.h>
+ #include <string.h>
+ 
++#if defined(_MSC_VER)
++    #define AMF_NO_VTABLE           __declspec(novtable)
++#else
++    #define AMF_NO_VTABLE
++#endif
++
+ #if defined(_WIN32)
+ 
+ 
+@@ -98,16 +123,6 @@ typedef signed int HRESULT;
+     #define AMF_INLINE              __inline
+     #define AMF_FORCEINLINE         __forceinline
+ #endif
+-    #define AMF_NO_VTABLE           __declspec(novtable)
+-
+-    #define AMFPRId64   "I64d"
+-    #define LPRId64    L"I64d"
+-
+-    #define AMFPRIud64   "Iu64d"
+-    #define LPRIud64    L"Iu64d"
+-
+-    #define AMFPRIx64   "I64x"
+-    #define LPRIx64    L"I64x"
+ 
+ #else // !WIN32 - Linux and Mac
+ 
+@@ -121,24 +136,36 @@ typedef signed int HRESULT;
+     #define AMF_INLINE              __inline__
+     #define AMF_FORCEINLINE         __inline__
+ #endif
+-    #define AMF_NO_VTABLE           
+ 
+-    #if !defined(AMFPRId64)
+-        #define AMFPRId64    "lld"
+-        #define LPRId64     L"lld"
+ 
+-        #define AMFPRIud64    "ulld"
+-        #define LPRIud64     L"ulld"
++#endif // WIN32
+ 
++#if defined(__cplusplus) && (__cplusplus >= 201103L)
++    #include <cinttypes>
++    #define AMFPRId64   PRId64
++    #define AMFPRIud64  PRIu64
++    #define AMFPRIx64   PRIx64
++#else
++#if defined(_MSC_VER)
++    #define AMFPRId64   "I64d"
++    #define AMFPRIud64  "Iu64d"
++    #define AMFPRIx64   "I64x"
++#else
++    #if !defined(AMFPRId64)
++        #define AMFPRId64    "lld"
++        #define AMFPRIud64   "ulld"
+         #define AMFPRIx64    "llx"
+-        #define LPRIx64     L"llx"
+     #endif
++#endif
++#endif
+ 
+-#endif // WIN32
++#define LPRId64   AMF_UNICODE(AMFPRId64)
++#define LPRIud64  AMF_UNICODE(AMFPRIud64)
++#define LPRIx64   AMF_UNICODE(AMFPRIx64)
+ 
+ 
+ #if defined(_WIN32)
+-#define AMF_WEAK __declspec( selectany ) 
++#define AMF_WEAK __declspec( selectany )
+ #elif defined (__GNUC__) || defined (__GCC__) || defined(__clang__)//GCC or CLANG
+ #define AMF_WEAK __attribute__((weak))
+ #endif
+@@ -169,14 +196,14 @@ typedef     void                amf_void;
+ typedef     bool                amf_bool;
+ #else
+ typedef     amf_uint8           amf_bool;
+-#define     true                1 
+-#define     false               0 
++#define     true                1
++#define     false               0
+ #endif
+ 
+-typedef     long                amf_long; 
+-typedef     int                 amf_int; 
+-typedef     unsigned long       amf_ulong; 
+-typedef     unsigned int        amf_uint; 
++typedef     long                amf_long;
++typedef     int                 amf_int;
++typedef     unsigned long       amf_ulong;
++typedef     unsigned int        amf_uint;
+ 
+ typedef     amf_int64           amf_pts;     // in 100 nanosecs
+ 
+@@ -209,7 +236,7 @@ typedef struct AMFRect
+ #if defined(__cplusplus)
+     bool operator==(const AMFRect& other) const
+     {
+-         return left == other.left && top == other.top && right == other.right && bottom == other.bottom; 
++         return left == other.left && top == other.top && right == other.right && bottom == other.bottom;
+     }
+     AMF_INLINE bool operator!=(const AMFRect& other) const { return !operator==(other); }
+     amf_int32 Width() const { return right - left; }
+@@ -230,7 +257,7 @@ typedef struct AMFSize
+ #if defined(__cplusplus)
+     bool operator==(const AMFSize& other) const
+     {
+-         return width == other.width && height == other.height; 
++         return width == other.width && height == other.height;
+     }
+     AMF_INLINE bool operator!=(const AMFSize& other) const { return !operator==(other); }
+ #endif
+@@ -249,7 +276,7 @@ typedef struct AMFPoint
+ #if defined(__cplusplus)
+     bool operator==(const AMFPoint& other) const
+     {
+-         return x == other.x && y == other.y; 
++         return x == other.x && y == other.y;
+     }
+     AMF_INLINE bool operator!=(const AMFPoint& other) const { return !operator==(other); }
+ #endif
+@@ -348,7 +375,7 @@ typedef struct AMFRate
+ #if defined(__cplusplus)
+     bool operator==(const AMFRate& other) const
+     {
+-         return num == other.num && den == other.den; 
++         return num == other.num && den == other.den;
+     }
+     AMF_INLINE bool operator!=(const AMFRate& other) const { return !operator==(other); }
+ #endif
+@@ -367,7 +394,7 @@ typedef struct AMFRatio
+ #if defined(__cplusplus)
+     bool operator==(const AMFRatio& other) const
+     {
+-         return num == other.num && den == other.den; 
++         return num == other.num && den == other.den;
+     }
+     AMF_INLINE bool operator!=(const AMFRatio& other) const { return !operator==(other); }
+ #endif
+@@ -402,7 +429,7 @@ typedef struct AMFColor
+ #if defined(__cplusplus)
+     bool operator==(const AMFColor& other) const
+     {
+-         return r == other.r && g == other.g && b == other.b && a == other.a; 
++         return r == other.r && g == other.g && b == other.b && a == other.a;
+     }
+     AMF_INLINE bool operator!=(const AMFColor& other) const { return !operator==(other); }
+ #endif
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Result.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Result.h
+index cf84bed730..350b72f65b 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Result.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Result.h
+@@ -122,6 +122,9 @@ typedef enum AMF_RESULT
+     AMF_TAN_UNSUPPORTED_VERSION                 , // Not supported version requested, solely for TANCreateContext().
+ 
+     AMF_NEED_MORE_INPUT                         ,//returned by AMFComponent::SubmitInput did not produce a buffer because more input submissions are required.
++    
++    // device vulkan
++    AMF_VULKAN_FAILED                           ,
+ } AMF_RESULT;
+ 
+ #endif //#ifndef AMF_Result_h
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Surface.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Surface.h
+index 3013af040c..f20396c77a 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Surface.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Surface.h
+@@ -1,4 +1,4 @@
+-// 
++//
+ // Notice Regarding Standards.  AMD does not provide a license or sublicense to
+ // any Intellectual Property Rights relating to any standards, including but not
+ // limited to any audio and/or video codec technologies such as MPEG-2, MPEG-4;
+@@ -6,9 +6,9 @@
+ // (collectively, the "Media Technologies"). For clarity, you will pay any
+ // royalties due for such third party technologies, which may include the Media
+ // Technologies that are owed as a result of AMD providing the Software to you.
+-// 
+-// MIT license 
+-// 
++//
++// MIT license
++//
+ // Copyright (c) 2018 Advanced Micro Devices, Inc. All rights reserved.
+ //
+ // Permission is hereby granted, free of charge, to any person obtaining a copy
+@@ -62,14 +62,14 @@ namespace amf
+         AMF_SURFACE_P010,               ///< 10 - planar 4:2:0 Y width x height + packed UV width/2 x height/2 - 10 bit per component (16 allocated, upper 10 bits are used)
+         AMF_SURFACE_RGBA_F16,           ///< 11 - packed 4:4:4 - 16 bit per component float
+         AMF_SURFACE_UYVY,               ///< 12 - packed 4:2:2 the similar to YUY2 but Y and UV swapped: Byte 0=8-bit Cb; Byte 1=8-bit Y'0; Byte 2=8-bit Cr Byte 3=8-bit Y'1; (used the same DX/CL/Vulkan storage as YUY2)
+-        AMF_SURFACE_R10G10B10A2,        ///< 13 - packed 4:4:4 to 4 bytes, 10 bit per RGB component, 2 bits per A 
++        AMF_SURFACE_R10G10B10A2,        ///< 13 - packed 4:4:4 to 4 bytes, 10 bit per RGB component, 2 bits per A
+         AMF_SURFACE_Y210,               ///< 14 - packed 4:2:2 - Word 0=10-bit Y'0; Word 1=10-bit Cb; Word 2=10-bit Y'1; Word 3=10-bit Cr
+         AMF_SURFACE_AYUV,               ///< 15 - packed 4:4:4 - 8 bit per component YUVA
+-        AMF_SURFACE_Y410,               ///< 16 - packed 4:4:4 - 10 bit per YUV component, 2 bits per A, AVYU 
+-        AMF_SURFACE_Y416,               ///< 16 - packed 4:4:4 - 16 bit per component 4 bytes, AVYU
+-        AMF_SURFACE_GRAY32,             ///< 17 - single component - 32 bit
+-        AMF_SURFACE_P012,               ///< 18 - planar 4:2:0 Y width x height + packed UV width/2 x height/2 - 12 bit per component (16 allocated, upper 12 bits are used)
+-        AMF_SURFACE_P016,               ///< 19 - planar 4:2:0 Y width x height + packed UV width/2 x height/2 - 16 bit per component (16 allocated, all bits are used)
++        AMF_SURFACE_Y410,               ///< 16 - packed 4:4:4 - 10 bit per YUV component, 2 bits per A, AVYU
++        AMF_SURFACE_Y416,               ///< 17 - packed 4:4:4 - 16 bit per component 4 bytes, AVYU
++        AMF_SURFACE_GRAY32,             ///< 18 - single component - 32 bit
++        AMF_SURFACE_P012,               ///< 19 - planar 4:2:0 Y width x height + packed UV width/2 x height/2 - 12 bit per component (16 allocated, upper 12 bits are used)
++        AMF_SURFACE_P016,               ///< 20 - planar 4:2:0 Y width x height + packed UV width/2 x height/2 - 16 bit per component (16 allocated, all bits are used)
+ 
+         AMF_SURFACE_FIRST = AMF_SURFACE_NV12,
+         AMF_SURFACE_LAST = AMF_SURFACE_P016
+@@ -79,7 +79,7 @@ namespace amf
+     // bit mask
+     //----------------------------------------------------------------------------------------------
+     typedef enum AMF_SURFACE_USAGE_BITS
+-    {                                                       // D3D11                        D3D12                                       Vulkan 
++    {                                                       // D3D11                        D3D12                                       Vulkan
+         AMF_SURFACE_USAGE_DEFAULT           = 0x80000000,   // will apply default           D3D12_RESOURCE_FLAG_NONE                    VK_IMAGE_USAGE_TRANSFER_SRC_BIT| VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+         AMF_SURFACE_USAGE_NONE              = 0x00000000,   // 0,                           D3D12_RESOURCE_FLAG_NONE,                   0
+         AMF_SURFACE_USAGE_SHADER_RESOURCE   = 0x00000001,   // D3D11_BIND_SHADER_RESOURCE,	D3D12_RESOURCE_FLAG_NONE					VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+@@ -87,7 +87,11 @@ namespace amf
+         AMF_SURFACE_USAGE_UNORDERED_ACCESS  = 0x00000004,   // D3D11_BIND_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+         AMF_SURFACE_USAGE_TRANSFER_SRC      = 0x00000008,   //								D3D12_RESOURCE_FLAG_NONE    	            VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+         AMF_SURFACE_USAGE_TRANSFER_DST      = 0x00000010,   //								D3D12_RESOURCE_FLAG_NONE		            VK_IMAGE_USAGE_TRANSFER_DST_BIT
+-        AMF_SURFACE_USAGE_LINEAR            = 0x00000020    
++        AMF_SURFACE_USAGE_LINEAR            = 0x00000020,   //
++        AMF_SURFACE_USAGE_NOSYNC            = 0x00000040,   //							    no fence (AMFFenceGUID) created	            no semaphore (AMFVulkanSync::hSemaphore) created
++        AMF_SURFACE_USAGE_DECODER_DST       = 0x00000080,   //							    AMFResourceDecodeGUID is set to 1           VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR
++        AMF_SURFACE_USAGE_DECODER_DPB       = 0x00000100,   //							    	                                        VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR
++        AMF_SURFACE_USAGE_NO_TRANSITION     = 0x00000200,   //							    	                                        no layout transition
+     } AMF_SURFACE_USAGE_BITS;
+     typedef amf_flags AMF_SURFACE_USAGE;
+     //----------------------------------------------------------------------------------------------
+@@ -194,9 +198,16 @@ namespace amf
+ #ifdef __clang__
+     #pragma clang diagnostic push
+     #pragma clang diagnostic ignored "-Woverloaded-virtual"
++#endif
++#ifdef __GNUC__
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+ #endif
+         virtual void                AMF_STD_CALL AddObserver(AMFSurfaceObserver* pObserver) = 0;
+         virtual void                AMF_STD_CALL RemoveObserver(AMFSurfaceObserver* pObserver) = 0;
++#ifdef __GNUC__
++#pragma GCC diagnostic pop
++#endif
+ #ifdef __clang__
+     #pragma clang diagnostic pop
+ #endif
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Variant.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Variant.h
+index 859146439f..6a51c7ab11 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Variant.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Variant.h
+@@ -132,16 +132,16 @@ namespace amf
+     static AMF_INLINE const AMFRatio&      AMF_STD_CALL AMFVariantGetRatio(const AMFVariantStruct* _variant) { return (_variant)->ratioValue; }
+     static AMF_INLINE const AMFColor&      AMF_STD_CALL AMFVariantGetColor(const AMFVariantStruct* _variant) { return (_variant)->colorValue; }
+ #else // #if defined(__cplusplus)
+-    static AMF_INLINE const AMFRect        AMF_STD_CALL AMFVariantGetRect (const AMFVariantStruct* _variant) { return (_variant)->rectValue; }
+-    static AMF_INLINE const AMFSize        AMF_STD_CALL AMFVariantGetSize (const AMFVariantStruct* _variant) { return (_variant)->sizeValue; }
+-    static AMF_INLINE const AMFPoint       AMF_STD_CALL AMFVariantGetPoint(const AMFVariantStruct* _variant) { return (_variant)->pointValue; }
+-    static AMF_INLINE const AMFFloatSize  AMF_STD_CALL AMFVariantGetFloatSize(const AMFVariantStruct* _variant) { return (_variant)->floatSizeValue; }
+-    static AMF_INLINE const AMFFloatPoint2D  AMF_STD_CALL AMFVariantGetFloatPoint2D(const AMFVariantStruct* _variant) { return (_variant)->floatPoint2DValue; }
+-    static AMF_INLINE const AMFFloatPoint3D  AMF_STD_CALL AMFVariantGetFloatPoint3D(const AMFVariantStruct* _variant) { return (_variant)->floatPoint3DValue; }
+-    static AMF_INLINE const AMFFloatVector4D  AMF_STD_CALL AMFVariantGetFloatVector4D(const AMFVariantStruct* _variant) { return (_variant)->floatVector4DValue; }
+-    static AMF_INLINE const AMFRate        AMF_STD_CALL AMFVariantGetRate (const AMFVariantStruct* _variant) { return (_variant)->rateValue; }
+-    static AMF_INLINE const AMFRatio       AMF_STD_CALL AMFVariantGetRatio(const AMFVariantStruct* _variant) { return (_variant)->ratioValue; }
+-    static AMF_INLINE const AMFColor       AMF_STD_CALL AMFVariantGetColor(const AMFVariantStruct* _variant) { return (_variant)->colorValue; }
++    static AMF_INLINE AMFRect              AMF_STD_CALL AMFVariantGetRect (const AMFVariantStruct* _variant) { return (_variant)->rectValue; }
++    static AMF_INLINE AMFSize              AMF_STD_CALL AMFVariantGetSize (const AMFVariantStruct* _variant) { return (_variant)->sizeValue; }
++    static AMF_INLINE AMFPoint             AMF_STD_CALL AMFVariantGetPoint(const AMFVariantStruct* _variant) { return (_variant)->pointValue; }
++    static AMF_INLINE AMFFloatSize         AMF_STD_CALL AMFVariantGetFloatSize(const AMFVariantStruct* _variant) { return (_variant)->floatSizeValue; }
++    static AMF_INLINE AMFFloatPoint2D      AMF_STD_CALL AMFVariantGetFloatPoint2D(const AMFVariantStruct* _variant) { return (_variant)->floatPoint2DValue; }
++    static AMF_INLINE AMFFloatPoint3D      AMF_STD_CALL AMFVariantGetFloatPoint3D(const AMFVariantStruct* _variant) { return (_variant)->floatPoint3DValue; }
++    static AMF_INLINE AMFFloatVector4D     AMF_STD_CALL AMFVariantGetFloatVector4D(const AMFVariantStruct* _variant) { return (_variant)->floatVector4DValue; }
++    static AMF_INLINE AMFRate              AMF_STD_CALL AMFVariantGetRate (const AMFVariantStruct* _variant) { return (_variant)->rateValue; }
++    static AMF_INLINE AMFRatio             AMF_STD_CALL AMFVariantGetRatio(const AMFVariantStruct* _variant) { return (_variant)->ratioValue; }
++    static AMF_INLINE AMFColor             AMF_STD_CALL AMFVariantGetColor(const AMFVariantStruct* _variant) { return (_variant)->colorValue; }
+ #endif // #if defined(__cplusplus)
+ 
+ 
+@@ -170,25 +170,25 @@ namespace amf
+     //----------------------------------------------------------------------------------------------
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantInit(AMFVariantStruct* pVariant);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantClear(AMFVariantStruct* pVariant);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantCompare(const AMFVariantStruct* pFirst, const AMFVariantStruct* pSecond, amf_bool* equal);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantCompare(const AMFVariantStruct* pFirst, const AMFVariantStruct* pSecond, amf_bool* pEqual);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantCopy(AMFVariantStruct* pDest, const AMFVariantStruct* pSrc);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignBool(AMFVariantStruct* pDest, amf_bool value);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignInt64(AMFVariantStruct* pDest, amf_int64 value);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignDouble(AMFVariantStruct* pDest, amf_double value);
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloat(AMFVariantStruct* pDest, amf_float value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignString(AMFVariantStruct* pDest, const char* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignWString(AMFVariantStruct* pDest, const wchar_t* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignInterface(AMFVariantStruct* pDest, AMFInterface* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRect(AMFVariantStruct* pDest, const AMFRect* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignSize(AMFVariantStruct* pDest, const AMFSize* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignPoint(AMFVariantStruct* pDest, const AMFPoint* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatSize(AMFVariantStruct* pDest, const AMFFloatSize* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatPoint2D(AMFVariantStruct* pDest, const AMFFloatPoint2D* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatPoint3D(AMFVariantStruct* pDest, const AMFFloatPoint3D* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatVector4D(AMFVariantStruct* pDest, const AMFFloatVector4D* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRate(AMFVariantStruct* pDest, const AMFRate* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRatio(AMFVariantStruct* pDest, const AMFRatio* value);
+-    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignColor(AMFVariantStruct* pDest, const AMFColor* value);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignString(AMFVariantStruct* pDest, const char* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignWString(AMFVariantStruct* pDest, const wchar_t* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignInterface(AMFVariantStruct* pDest, AMFInterface* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRect(AMFVariantStruct* pDest, const AMFRect* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignSize(AMFVariantStruct* pDest, const AMFSize* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignPoint(AMFVariantStruct* pDest, const AMFPoint* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatSize(AMFVariantStruct* pDest, const AMFFloatSize* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatPoint2D(AMFVariantStruct* pDest, const AMFFloatPoint2D* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatPoint3D(AMFVariantStruct* pDest, const AMFFloatPoint3D* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignFloatVector4D(AMFVariantStruct* pDest, const AMFFloatVector4D* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRate(AMFVariantStruct* pDest, const AMFRate* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRatio(AMFVariantStruct* pDest, const AMFRatio* pValue);
++    static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignColor(AMFVariantStruct* pDest, const AMFColor* pValue);
+ 
+ #if defined(__cplusplus)
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantAssignRect(AMFVariantStruct* pDest, const AMFRect& value);
+@@ -204,10 +204,10 @@ namespace amf
+ 
+     static AMF_INLINE AMF_RESULT       AMF_CDECL_CALL AMFVariantChangeType(AMFVariantStruct* pDest, const AMFVariantStruct* pSrc, AMF_VARIANT_TYPE newType);
+ #endif
+-    static AMF_INLINE char*            AMF_CDECL_CALL AMFVariantDuplicateString(const char* from);
+-    static AMF_INLINE void             AMF_CDECL_CALL AMFVariantFreeString(char* from);
+-    static AMF_INLINE wchar_t*         AMF_CDECL_CALL AMFVariantDuplicateWString(const wchar_t* from);
+-    static AMF_INLINE void             AMF_CDECL_CALL AMFVariantFreeWString(wchar_t* from);
++    static AMF_INLINE char*            AMF_CDECL_CALL AMFVariantDuplicateString(const char* pFrom);
++    static AMF_INLINE void             AMF_CDECL_CALL AMFVariantFreeString(char* pFrom);
++    static AMF_INLINE wchar_t*         AMF_CDECL_CALL AMFVariantDuplicateWString(const wchar_t* pFrom);
++    static AMF_INLINE void             AMF_CDECL_CALL AMFVariantFreeWString(wchar_t* pFrom);
+ 
+ #if defined(__cplusplus)
+     //----------------------------------------------------------------------------------------------
+@@ -246,8 +246,8 @@ namespace amf
+         explicit AMF_INLINE AMFVariant(const AMFRate & value)   { AMFVariantInit(this); AMFVariantAssignRate(this, &value); }
+         explicit AMF_INLINE AMFVariant(const AMFRatio& value)   { AMFVariantInit(this); AMFVariantAssignRatio(this, &value); }
+         explicit AMF_INLINE AMFVariant(const AMFColor& value)   { AMFVariantInit(this); AMFVariantAssignColor(this, &value); }
+-        explicit AMF_INLINE AMFVariant(const char* value)       { AMFVariantInit(this); AMFVariantAssignString(this, value); }
+-        explicit AMF_INLINE AMFVariant(const wchar_t* value)    { AMFVariantInit(this); AMFVariantAssignWString(this, value); }
++        explicit AMF_INLINE AMFVariant(const char* pValue)       { AMFVariantInit(this); AMFVariantAssignString(this, pValue); }
++        explicit AMF_INLINE AMFVariant(const wchar_t* pValue)    { AMFVariantInit(this); AMFVariantAssignWString(this, pValue); }
+         explicit AMF_INLINE AMFVariant(AMFInterface* pValue)    { AMFVariantInit(this); AMFVariantAssignInterface(this, pValue); }
+ 
+         ~AMFVariant() { AMFVariantClear(this); }
+@@ -273,9 +273,9 @@ namespace amf
+         AMFVariant& operator=(const AMFRate &   value)      { AMFVariantAssignRate(this, &value);  return *this;}
+         AMFVariant& operator=(const AMFRatio&   value)      { AMFVariantAssignRatio(this, &value);  return *this;}
+         AMFVariant& operator=(const AMFColor&   value)      { AMFVariantAssignColor(this, &value);  return *this;}
+-        AMFVariant& operator=(const char*       value)      { AMFVariantAssignString(this, value);  return *this;}
+-        AMFVariant& operator=(const wchar_t*    value)      { AMFVariantAssignWString(this, value);  return *this;}
+-        AMFVariant& operator=(AMFInterface*     value)      { AMFVariantAssignInterface(this, value);  return *this;}
++        AMFVariant& operator=(const char*       pValue)      { AMFVariantAssignString(this, pValue);  return *this;}
++        AMFVariant& operator=(const wchar_t*    pValue)      { AMFVariantAssignWString(this, pValue);  return *this;}
++        AMFVariant& operator=(AMFInterface*     pValue)      { AMFVariantAssignInterface(this, pValue);  return *this;}
+ 
+         template<typename T> AMFVariant& operator=(const AMFInterfacePtr_T<T>& value);
+ 
+@@ -315,7 +315,7 @@ namespace amf
+         AMF_INLINE AMFRate          ToRate () const     { return Empty() ? AMFRate()    : GetValue<AMFRate,  AMF_VARIANT_RATE>(AMFVariantGetRate); }
+         AMF_INLINE AMFRatio         ToRatio() const     { return Empty() ? AMFRatio()   : GetValue<AMFRatio, AMF_VARIANT_RATIO>(AMFVariantGetRatio); }
+         AMF_INLINE AMFColor         ToColor() const     { return Empty() ? AMFColor()   : GetValue<AMFColor, AMF_VARIANT_COLOR>(AMFVariantGetColor); }
+-        AMF_INLINE AMFInterface*    ToInterface() const { return AMFVariantGetType(this) == AMF_VARIANT_INTERFACE ? this->pInterface : NULL; }
++        AMF_INLINE AMFInterface*    ToInterface() const { return AMFVariantGetType(this) == AMF_VARIANT_INTERFACE ? this->pInterface : nullptr; }
+         AMF_INLINE String           ToString() const;
+         AMF_INLINE WString          ToWString() const;
+ 
+@@ -332,7 +332,7 @@ namespace amf
+ 
+         AMFVariantStruct& GetVariant();
+ 
+-        void ChangeType(AMF_VARIANT_TYPE type, const AMFVariant* pSrc = NULL);
++        void ChangeType(AMF_VARIANT_TYPE type, const AMFVariant* pSrc = nullptr);
+ 
+         bool Empty() const;
+     private:
+@@ -348,27 +348,27 @@ namespace amf
+     private:
+         void Free()
+         {
+-            if (m_Str != NULL)
++            if (m_Str != nullptr)
+             {
+                 AMFVariantFreeString(m_Str);
+-                m_Str = NULL;
++                m_Str = nullptr;
+             }
+         }
+     public:
+-        String() :m_Str(NULL){}
+-        String(const char* str) : m_Str(NULL)
++        String() :m_Str(nullptr){}
++        String(const char* str) : m_Str(nullptr)
+         {
+             m_Str = AMFVariantDuplicateString(str);
+         }
+-        String(const String& p_other) : m_Str(NULL)
++        String(const String& p_other) : m_Str(nullptr)
+         {
+             operator=(p_other);
+         }
+ 
+-#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (_MSC_VER >= 1600)
++#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (defined(_MSC_VER) && _MSC_VER >= 1600)
+ #pragma warning (push)
+ #pragma warning (disable : 26439) //This kind of function may not throw. Declare it 'noexcept'.
+-        String(String&& p_other) : m_Str(NULL)
++        String(String&& p_other) : m_Str(nullptr)
+         {
+             operator=(p_other);
+         }
+@@ -393,22 +393,22 @@ namespace amf
+             m_Str = AMFVariantDuplicateString(p_other.m_Str);
+             return *this;
+         }
+-#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (_MSC_VER >= 1600)
++#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (defined(_MSC_VER) && _MSC_VER >= 1600)
+         String& operator=(String&& p_other)
+         {
+             Free();
+             m_Str = p_other.m_Str;
+-            p_other.m_Str = NULL;    //    Transfer the ownership
++            p_other.m_Str = nullptr;    //    Transfer the ownership
+             return *this;
+         }
+ #endif
+         bool operator==(const String& p_other) const
+         {
+-            if (m_Str == NULL && p_other.m_Str == NULL)
++            if (m_Str == nullptr && p_other.m_Str == nullptr)
+             {
+                 return true;
+             }
+-            else if ((m_Str == NULL && p_other.m_Str != NULL) || (m_Str != NULL && p_other.m_Str == NULL))
++            else if ((m_Str == nullptr && p_other.m_Str != nullptr) || (m_Str != nullptr && p_other.m_Str == nullptr))
+             {
+                 return false;
+             }
+@@ -417,7 +417,7 @@ namespace amf
+         const char* c_str() const { return m_Str; }
+         size_t size() const
+         {
+-            if(m_Str == NULL)
++            if (m_Str == nullptr)
+             {
+                 return 0;
+             }
+@@ -428,16 +428,16 @@ namespace amf
+         
+         void resize(size_t sizeAlloc)
+         {
+-            if(sizeAlloc == 0)
++            if (sizeAlloc == 0)
+             {
+                 Free();
+                 return;
+             }
+             char* str = (char*)amf_variant_alloc(sizeof(char)*(sizeAlloc + 1));
+-            if(m_Str != NULL)
++            if (m_Str != nullptr)
+             {
+                 size_t copySize = sizeAlloc;
+-                if(copySize > size())
++                if (copySize > size())
+                 {
+                     copySize = size();
+                 }
+@@ -459,24 +459,24 @@ namespace amf
+     private:
+         void Free()
+         {
+-            if (m_Str != NULL)
++            if (m_Str != nullptr)
+             {
+                 AMFVariantFreeWString(m_Str);
+-                m_Str = NULL;
++                m_Str = nullptr;
+             }
+         }
+     public:
+-        WString() :m_Str(NULL){}
+-        WString(const wchar_t* str) : m_Str(NULL)
++        WString() :m_Str(nullptr){}
++        WString(const wchar_t* str) : m_Str(nullptr)
+         {
+             m_Str = AMFVariantDuplicateWString(str);
+         }
+-        WString(const WString& p_other) : m_Str(NULL)
++        WString(const WString& p_other) : m_Str(nullptr)
+         {
+             operator=(p_other);
+         }
+-#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (_MSC_VER >= 1600)
+-        WString(WString&& p_other) : m_Str(NULL)
++#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (defined(_MSC_VER) && _MSC_VER >= 1600)
++        WString(WString&& p_other) : m_Str(nullptr)
+         {
+             operator=(p_other);
+         }
+@@ -492,12 +492,12 @@ namespace amf
+             m_Str = AMFVariantDuplicateWString(p_other.m_Str);
+             return *this;
+         }
+-#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (_MSC_VER >= 1600)
++#if (__cplusplus == 201103L) || defined(__GXX_EXPERIMENTAL_CXX0X) || (defined(_MSC_VER) && _MSC_VER >= 1600)
+         WString& operator=(WString&& p_other)
+         {
+             Free();
+             m_Str = p_other.m_Str;
+-            p_other.m_Str = NULL;    //    Transfer the ownership
++            p_other.m_Str = nullptr;    //    Transfer the ownership
+             return *this;
+         }
+ #pragma warning (pop)
+@@ -513,11 +513,11 @@ namespace amf
+ 
+         bool operator==(const WString& p_other) const
+         {
+-            if (m_Str == NULL && p_other.m_Str == NULL)
++            if (m_Str == nullptr && p_other.m_Str == nullptr)
+             {
+                 return true;
+             }
+-            else if ((m_Str == NULL && p_other.m_Str != NULL) || (m_Str != NULL && p_other.m_Str == NULL))
++            else if ((m_Str == nullptr && p_other.m_Str != nullptr) || (m_Str != nullptr && p_other.m_Str == nullptr))
+             {
+                 return false;
+             }
+@@ -527,7 +527,7 @@ namespace amf
+         const wchar_t* c_str() const { return m_Str; }
+         size_t size()  const
+         {
+-            if(m_Str == NULL)
++            if (m_Str == nullptr)
+             {
+                 return 0;
+             }
+@@ -538,16 +538,16 @@ namespace amf
+         
+         void resize(size_t sizeAlloc)
+         {
+-            if(sizeAlloc == 0)
++            if (sizeAlloc == 0)
+             {
+                 Free();
+                 return;
+             }
+             wchar_t* str = (wchar_t*)amf_variant_alloc(sizeof(wchar_t)*(sizeAlloc + 1));
+-            if(m_Str != NULL)
++            if (m_Str != nullptr)
+             {
+                 size_t copySize = sizeAlloc;
+-                if(copySize > size())
++                if (copySize > size())
+                 {
+                     copySize = size();
+                 }
+@@ -578,7 +578,7 @@ namespace amf
+     //----------------------------------------------------------------------------------------------
+     #define AMF_VARIANT_RETURN_IF_INVALID_POINTER(p) \
+        { \
+-            if(p == NULL) \
++            if (p == NULL) \
+                     { \
+                  return AMF_INVALID_POINTER; \
+             } \
+@@ -596,7 +596,7 @@ namespace amf
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pVariant);
+ 
+-        switch(AMFVariantGetType(pVariant))
++        switch (AMFVariantGetType(pVariant))
+         {
+         case AMF_VARIANT_STRING:
+             amf_variant_free(AMFVariantString(pVariant));
+@@ -609,7 +609,7 @@ namespace amf
+             break;
+ 
+         case AMF_VARIANT_INTERFACE:
+-            if(AMFVariantInterface(pVariant) != NULL)
++            if (AMFVariantInterface(pVariant) != NULL)
+             {
+ #if defined(__cplusplus)
+                 AMFVariantInterface(pVariant)->Release();
+@@ -628,117 +628,118 @@ namespace amf
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantCompare(const AMFVariantStruct* pFirst, const AMFVariantStruct* pSecond, amf_bool* bEqual)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantCompare(const AMFVariantStruct* pFirst, const AMFVariantStruct* pSecond, amf_bool* pEqual)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pFirst);
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pSecond);
+-    
+-        if(pFirst == pSecond)
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pEqual);
++
++        if (pFirst == pSecond)
+         {
+-            *bEqual = true;
++            *pEqual = true;
+         }
+-        else if(AMFVariantGetType(pFirst) != AMFVariantGetType(pSecond))
++        else if (AMFVariantGetType(pFirst) != AMFVariantGetType(pSecond))
+         {
+-            *bEqual = false;
++            *pEqual = false;
+         }
+         else
+         {
+-            switch(AMFVariantGetType(pFirst))
++            switch (AMFVariantGetType(pFirst))
+             {
+             case AMF_VARIANT_EMPTY:
+-                *bEqual = true;
++                *pEqual = true;
+                 break;
+             case AMF_VARIANT_BOOL:
+-                *bEqual = AMFVariantGetBool(pFirst) == AMFVariantBool(pSecond);
++                *pEqual = AMFVariantGetBool(pFirst) == AMFVariantBool(pSecond);
+                 break;
+             case AMF_VARIANT_INT64:
+-                *bEqual = AMFVariantGetInt64(pFirst) == AMFVariantInt64(pSecond);
++                *pEqual = AMFVariantGetInt64(pFirst) == AMFVariantInt64(pSecond);
+                 break;
+             case AMF_VARIANT_DOUBLE:
+-                *bEqual = AMFVariantGetDouble(pFirst) == AMFVariantDouble(pSecond);
++                *pEqual = AMFVariantGetDouble(pFirst) == AMFVariantDouble(pSecond);
+                 break;
+             case AMF_VARIANT_FLOAT:
+-                *bEqual = AMFVariantGetFloat(pFirst) == AMFVariantFloat(pSecond);
++                *pEqual = AMFVariantGetFloat(pFirst) == AMFVariantFloat(pSecond);
+                 break;
+             case AMF_VARIANT_RECT:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetRect(pFirst) == AMFVariantGetRect(pSecond);
++                *pEqual = AMFVariantGetRect(pFirst) == AMFVariantGetRect(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->rectValue, &pSecond->rectValue, sizeof(AMFRect)) == 0;
++                *pEqual = memcmp(&pFirst->rectValue, &pSecond->rectValue, sizeof(AMFRect)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_SIZE:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetSize(pFirst) == AMFVariantGetSize(pSecond);
++                *pEqual = AMFVariantGetSize(pFirst) == AMFVariantGetSize(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->sizeValue, &pSecond->sizeValue, sizeof(AMFSize)) == 0;
++                *pEqual = memcmp(&pFirst->sizeValue, &pSecond->sizeValue, sizeof(AMFSize)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_POINT:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetPoint(pFirst) == AMFVariantGetPoint(pSecond);
++                *pEqual = AMFVariantGetPoint(pFirst) == AMFVariantGetPoint(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->pointValue, &pSecond->pointValue, sizeof(AMFPoint)) == 0;
++                *pEqual = memcmp(&pFirst->pointValue, &pSecond->pointValue, sizeof(AMFPoint)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_FLOAT_SIZE:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetFloatSize(pFirst) == AMFVariantGetFloatSize(pSecond);
++                *pEqual = AMFVariantGetFloatSize(pFirst) == AMFVariantGetFloatSize(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->floatSizeValue, &pSecond->floatSizeValue, sizeof(AMFFloatPoint2D)) == 0;
++                *pEqual = memcmp(&pFirst->floatSizeValue, &pSecond->floatSizeValue, sizeof(AMFFloatPoint2D)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_FLOAT_POINT2D:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetFloatPoint2D(pFirst) == AMFVariantGetFloatPoint2D(pSecond);
++                *pEqual = AMFVariantGetFloatPoint2D(pFirst) == AMFVariantGetFloatPoint2D(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->floatPoint2DValue, &pSecond->floatPoint2DValue, sizeof(AMFFloatPoint2D)) == 0;
++                *pEqual = memcmp(&pFirst->floatPoint2DValue, &pSecond->floatPoint2DValue, sizeof(AMFFloatPoint2D)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_FLOAT_POINT3D:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetFloatPoint3D(pFirst) == AMFVariantGetFloatPoint3D(pSecond);
++                *pEqual = AMFVariantGetFloatPoint3D(pFirst) == AMFVariantGetFloatPoint3D(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->floatPoint3DValue, &pSecond->floatPoint3DValue, sizeof(AMFFloatPoint3D)) == 0;
++                *pEqual = memcmp(&pFirst->floatPoint3DValue, &pSecond->floatPoint3DValue, sizeof(AMFFloatPoint3D)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_FLOAT_VECTOR4D:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetFloatVector4D(pFirst) == AMFVariantGetFloatVector4D(pSecond);
++                *pEqual = AMFVariantGetFloatVector4D(pFirst) == AMFVariantGetFloatVector4D(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->floatVector4DValue, &pSecond->floatVector4DValue, sizeof(AMFFloatPoint3D)) == 0;
++                *pEqual = memcmp(&pFirst->floatVector4DValue, &pSecond->floatVector4DValue, sizeof(AMFFloatPoint3D)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_RATE:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetRate(pFirst) == AMFVariantGetRate(pSecond);
++                *pEqual = AMFVariantGetRate(pFirst) == AMFVariantGetRate(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->rateValue, &pSecond->rateValue, sizeof(AMFRate)) == 0;
++                *pEqual = memcmp(&pFirst->rateValue, &pSecond->rateValue, sizeof(AMFRate)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_RATIO:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetRatio(pFirst) == AMFVariantGetRatio(pSecond);
++                *pEqual = AMFVariantGetRatio(pFirst) == AMFVariantGetRatio(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->ratioValue, &pSecond->ratioValue, sizeof(AMFRatio)) == 0;
++                *pEqual = memcmp(&pFirst->ratioValue, &pSecond->ratioValue, sizeof(AMFRatio)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_COLOR:
+ #if defined(__cplusplus)
+-                *bEqual = AMFVariantGetColor(pFirst) == AMFVariantGetColor(pSecond);
++                *pEqual = AMFVariantGetColor(pFirst) == AMFVariantGetColor(pSecond);
+ #else
+-                *bEqual = memcmp(&pFirst->colorValue, &pSecond->colorValue, sizeof(AMFColor)) == 0;
++                *pEqual = memcmp(&pFirst->colorValue, &pSecond->colorValue, sizeof(AMFColor)) == 0;
+ #endif
+                 break;
+             case AMF_VARIANT_STRING:
+-                *bEqual = strcmp(AMFVariantString(pFirst), AMFVariantString(pSecond)) == 0;
++                *pEqual = strcmp(AMFVariantString(pFirst), AMFVariantString(pSecond)) == 0;
+                 break;
+             case AMF_VARIANT_WSTRING:
+-                *bEqual = wcscmp(AMFVariantWString(pFirst), AMFVariantWString(pSecond)) == 0;
++                *pEqual = wcscmp(AMFVariantWString(pFirst), AMFVariantWString(pSecond)) == 0;
+                 break;
+             case AMF_VARIANT_INTERFACE:
+-                *bEqual = AMFVariantInterface(pFirst) == AMFVariantInterface(pSecond);
++                *pEqual = AMFVariantInterface(pFirst) == AMFVariantInterface(pSecond);
+                 break;
+             default:
+                 errRet = AMF_INVALID_ARG;
+@@ -753,9 +754,9 @@ namespace amf
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pSrc);
+-        if(pDest != pSrc)
++        if (pDest != pSrc)
+         {
+-            switch(AMFVariantGetType(pSrc))
++            switch (AMFVariantGetType(pSrc))
+             {
+             case AMF_VARIANT_EMPTY:
+                 errRet = AMFVariantInit(pDest);
+@@ -871,14 +872,14 @@ namespace amf
+     {
+         res = AMF_OK;
+         char buff[0xFF];
+-        sprintf(buff, "%" AMFPRId64, (long long)value);
++        sprintf(buff, "%" AMFPRId64, value);
+         return buff;
+     }
+     static AMF_INLINE AMFVariant::WString AMFConvertInt64ToWString(amf_int64 value, AMF_RESULT& res)
+     {
+         res = AMF_OK;
+         wchar_t buff[0xFF];
+-        swprintf(buff, 0xFF, L"%" LPRId64, (long long)value);
++        swprintf(buff, 0xFF, L"%" LPRId64, value);
+         return buff;
+     }
+ 
+@@ -919,13 +920,13 @@ namespace amf
+     {
+         res = AMF_OK;
+         AMFVariant::String tmp = value;
+-        if(( tmp == "true") || ( tmp == "True") || ( tmp == "TRUE") || ( tmp == "1") )
++        if (( tmp == "true") || ( tmp == "True") || ( tmp == "TRUE") || ( tmp == "1") )
+         {
+             return true;
+         }
+         else
+         {
+-            if(( tmp == "false") || ( tmp == "False") || ( tmp == "FALSE") || ( tmp == "0") )
++            if (( tmp == "false") || ( tmp == "False") || ( tmp == "FALSE") || ( tmp == "0") )
+             {
+                 return false;
+             }
+@@ -937,18 +938,18 @@ namespace amf
+     static AMF_INLINE amf_int64 AMFConvertStringToInt64(const AMFVariant::String& value, AMF_RESULT& res)
+     {
+         res = AMF_OK;
+-        long long tmp = 0;
++        amf_int64 tmp = 0;
+         int readElements = 0;
+ 
+-        if(value.size() > 2 && ( value.c_str()[0] == '0') && ( value.c_str()[1] == 'x') )
++        if (value.size() > 2 && ( value.c_str()[0] == '0') && ( value.c_str()[1] == 'x') )
+         {
+             readElements = sscanf(value.c_str(), "0x%" AMFPRIx64, &tmp);
+         }
+-        else if(value.size() > 0)
++        else if (value.size() > 0)
+         {
+             readElements = sscanf(value.c_str(), "%" AMFPRId64, &tmp);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -961,11 +962,11 @@ namespace amf
+         res = AMF_OK;
+         amf_double tmp = 0;
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         { 
+             readElements = sscanf(value.c_str(), "%lf", &tmp);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -994,7 +995,7 @@ namespace amf
+         res = AMF_OK;
+ //        return amf_from_utf8_to_unicode(value);
+         AMFVariant::WString result;
+-        if(0 == value.size())
++        if (0 == value.size())
+         {
+             return result;
+         }
+@@ -1003,7 +1004,7 @@ namespace amf
+ #if defined(_WIN32)
+         _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
+         int UnicodeBuffSize = ::MultiByteToWideChar(CP_UTF8, 0, pUtf8Buff, -1, NULL, 0);
+-        if(0 == UnicodeBuffSize)
++        if (0 == UnicodeBuffSize)
+         {
+             return result;
+         }
+@@ -1021,10 +1022,10 @@ namespace amf
+         int len = value.size();
+         const char* pt = pUtf8Buff;
+         int UnicodeBuffSize = 0;
+-        while(len > 0)
++        while (len > 0)
+         {
+             size_t length = mbrlen (pt, len, &mbs); //MM TODO Android always return 1
+-            if((length == 0) || (length > len))
++            if ((length == 0) || (length > len))
+             {
+                 break;
+             }
+@@ -1039,10 +1040,10 @@ namespace amf
+         len = value.size();
+         pt = pUtf8Buff;
+         UnicodeBuffSize = 0;
+-        while(len > 0)                            
++        while (len > 0)
+         {
+             size_t length = mbrlen (pt, len, &mbs);
+-            if((length == 0) || (length > len))
++            if ((length == 0) || (length > len))
+             {
+                 break;
+             }
+@@ -1056,7 +1057,7 @@ namespace amf
+  #else
+         char* old_locale = setlocale(LC_CTYPE, "en_US.UTF8");
+         size_t UnicodeBuffSize = mbstowcs(NULL, pUtf8Buff, 0);
+-        if(0 == UnicodeBuffSize)
++        if (0 == UnicodeBuffSize)
+         {
+             return result;
+         }
+@@ -1073,7 +1074,7 @@ namespace amf
+         res = AMF_OK;
+ //      return amf_from_unicode_to_utf8(value);
+         AMFVariant::String result;
+-        if(0 == value.size())
++        if (0 == value.size())
+         {
+             return result;
+         }
+@@ -1083,7 +1084,7 @@ namespace amf
+ #if defined(_WIN32)
+         _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
+         int Utf8BuffSize = ::WideCharToMultiByte(CP_UTF8, 0, pwBuff, -1, NULL, 0, NULL, NULL);
+-        if(0 == Utf8BuffSize)
++        if (0 == Utf8BuffSize)
+         {
+             return result;
+         }
+@@ -1094,7 +1095,7 @@ namespace amf
+ #elif defined(__ANDROID__)
+         char* old_locale = setlocale(LC_CTYPE, "en_US.UTF8");
+         int Utf8BuffSize = value.length();
+-        if(0 == Utf8BuffSize)
++        if (0 == Utf8BuffSize)
+         {
+             return result;
+         }
+@@ -1105,7 +1106,7 @@ namespace amf
+         mbrlen(NULL, 0, &mbs);
+ 
+         Utf8BuffSize = 0;
+-        for( int i = 0; i < value.length(); i++)
++        for (int i = 0; i < value.length(); i++)
+         {
+             //MM TODO Android - not implemented
+             //int written = wcrtomb(&result[Utf8BuffSize], pwBuff[i], &mbs);
+@@ -1119,7 +1120,7 @@ namespace amf
+ #else
+         char* old_locale = setlocale(LC_CTYPE, "en_US.UTF8");
+         size_t Utf8BuffSize = wcstombs(NULL, pwBuff, 0);
+-        if(0 == Utf8BuffSize)
++        if (0 == Utf8BuffSize)
+         {
+             return result;
+         }
+@@ -1227,11 +1228,11 @@ namespace amf
+         res = AMF_OK;
+         AMFRect tmp = {};
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         {
+             readElements = sscanf(value.c_str(), "%d,%d,%d,%d", &tmp.left, &tmp.top, &tmp.right, &tmp.bottom);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -1244,18 +1245,18 @@ namespace amf
+         res = AMF_OK;
+         AMFSize tmp = {};
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         {
+-          if(strchr(value.c_str(), ',') != nullptr)
++          if (strchr(value.c_str(), ',') != nullptr)
+           {
+             readElements = sscanf(value.c_str(), "%d,%d", &tmp.width, &tmp.height);
+           } 
+-          else if (strchr(value.c_str(), 'x') != nullptr) 
++          else if (strchr(value.c_str(), 'x') != nullptr)
+           {
+             readElements = sscanf(value.c_str(), "%dx%d", &tmp.width, &tmp.height);
+           }
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -1267,11 +1268,11 @@ namespace amf
+         res = AMF_OK;
+         AMFPoint tmp = {};
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         {
+             readElements = sscanf(value.c_str(), "%d,%d", &tmp.x, &tmp.y);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -1347,11 +1348,11 @@ namespace amf
+         res = AMF_OK;
+         AMFRate tmp = {};
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         {
+             readElements = sscanf(value.c_str(), "%u,%u", &tmp.num, &tmp.den);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -1363,11 +1364,11 @@ namespace amf
+         res = AMF_OK;
+         AMFRatio tmp = {};
+         int readElements = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         {
+             readElements = sscanf(value.c_str(), "%u,%u", &tmp.num, &tmp.den);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return tmp;
+         }
+@@ -1382,11 +1383,11 @@ namespace amf
+         amf_uint32 g = 0;
+         amf_uint32 b = 0;
+         amf_uint32 a = 0;
+-        if(value.size() > 0)
++        if (value.size() > 0)
+         { 
+             readElements = sscanf(value.c_str(), "%u,%u,%u,%u", &r, &g, &b, &a);
+         }
+-        if(readElements)
++        if (readElements)
+         {
+             return AMFConstructColor((amf_uint8)r, (amf_uint8)g, (amf_uint8)b, (amf_uint8)a);
+         }
+@@ -1479,7 +1480,7 @@ namespace amf
+ 
+     //-------------------------------------------------------------------------------------------------
+     #define AMFConvertTool(srcType, dstType)\
+-        if(AMFVariantGetType(pSrc) == AMFVariantType##srcType && newType == AMFVariantType##dstType)\
++        if (AMFVariantGetType(pSrc) == AMFVariantType##srcType && newType == AMFVariantType##dstType)\
+         {\
+             AMF_RESULT res = AMF_OK;\
+             AMFVariantAssign##dstType(pDest, AMFConvert##srcType##To##dstType(AMFVariant##srcType(pSrc), res));\
+@@ -1490,20 +1491,24 @@ namespace amf
+     {
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
+ 
+-        if(pSrc == 0)
++        if (pSrc == nullptr)
+         {
+             pSrc = pDest;
+         }
+ 
+-        if(AMFVariantGetType(pSrc) == newType)
++        if (AMFVariantGetType(pSrc) == newType)
+         {
+-            if(pDest == pSrc)
++            if (pDest == pSrc)
+             {
+                 return AMF_OK;
+             }
+             return AMFVariantCopy(pDest, pSrc);
+         }
+-        AMFVariantClear(pDest);
++
++        if (pDest != pSrc)
++        {
++            AMFVariantClear(pDest);
++        }
+ 
+         AMFConvertTool(Empty, Bool);
+         AMFConvertTool(Empty, Int64);
+@@ -1527,12 +1532,12 @@ namespace amf
+         AMFConvertTool(Double, Bool);
+         AMFConvertTool(Double, Int64);
+         AMFConvertTool(Double, String);
+-        AMFConvertTool(Double, String);
++        AMFConvertTool(Double, WString);
+ 
+         AMFConvertTool(Float, Bool);
+         AMFConvertTool(Float, Int64);
+         AMFConvertTool(Float, String);
+-        AMFConvertTool(Float, String);
++        AMFConvertTool(Float, WString);
+ 
+         AMFConvertTool(String, Bool);
+         AMFConvertTool(String, Int64);
+@@ -1585,7 +1590,7 @@ namespace amf
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_BOOL;
+             AMFVariantBool(pDest) = value;
+@@ -1599,7 +1604,7 @@ namespace amf
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_INT64;
+             AMFVariantInt64(pDest) = value;
+@@ -1613,7 +1618,7 @@ namespace amf
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_DOUBLE;
+             AMFVariantDouble(pDest) = value;
+@@ -1642,12 +1647,12 @@ namespace amf
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             const size_t size = (strlen(pValue) + 1);
+             pDest->type = AMF_VARIANT_STRING;
+             AMFVariantString(pDest) = (char*)amf_variant_alloc(size * sizeof(char));
+-            if(AMFVariantString(pDest))
++            if (AMFVariantString(pDest))
+             {
+                 memcpy(AMFVariantString(pDest), pValue, size * sizeof(char));
+             }
+@@ -1666,12 +1671,12 @@ namespace amf
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             const size_t size = (wcslen(pValue) + 1);
+             pDest->type = AMF_VARIANT_WSTRING;
+             AMFVariantWString(pDest) = (wchar_t*)amf_variant_alloc(size * sizeof(wchar_t));
+-            if(AMFVariantWString(pDest))
++            if (AMFVariantWString(pDest))
+             {
+                 memcpy(AMFVariantWString(pDest), pValue, size * sizeof(wchar_t));
+             }
+@@ -1690,11 +1695,11 @@ namespace amf
+         //AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);//can be NULL
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_INTERFACE;
+             AMFVariantInterface(pDest) = pValue;
+-            if(AMFVariantInterface(pDest))
++            if (AMFVariantInterface(pDest))
+             {
+ #if defined(__cplusplus)
+                 AMFVariantInterface(pDest)->Acquire();
+@@ -1713,16 +1718,17 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRect (AMFVariantStruct* pDest, const AMFRect* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRect (AMFVariantStruct* pDest, const AMFRect* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_RECT;
+-            AMFVariantRect(pDest) = *value;
++            AMFVariantRect(pDest) = *pValue;
+         }
+         return errRet;
+     }
+@@ -1734,16 +1740,17 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignSize (AMFVariantStruct* pDest, const AMFSize* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignSize (AMFVariantStruct* pDest, const AMFSize* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_SIZE;
+-            AMFVariantSize(pDest) = *value;
++            AMFVariantSize(pDest) = *pValue;
+         }
+         return errRet;
+     }
+@@ -1771,72 +1778,77 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignPoint(AMFVariantStruct* pDest, const AMFPoint* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignPoint(AMFVariantStruct* pDest, const AMFPoint* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_POINT;
+-            AMFVariantPoint(pDest) = *value;
++            AMFVariantPoint(pDest) = *pValue;
+         }
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatSize(AMFVariantStruct* pDest, const AMFFloatSize* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatSize(AMFVariantStruct* pDest, const AMFFloatSize* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+         if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_FLOAT_SIZE;
+-            AMFVariantFloatSize(pDest) = *value;
++            AMFVariantFloatSize(pDest) = *pValue;
+         }
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatPoint2D(AMFVariantStruct* pDest, const AMFFloatPoint2D* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatPoint2D(AMFVariantStruct* pDest, const AMFFloatPoint2D* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+         if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_FLOAT_POINT2D;
+-            AMFVariantFloatPoint2D(pDest) = *value;
++            AMFVariantFloatPoint2D(pDest) = *pValue;
+         }
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatPoint3D(AMFVariantStruct* pDest, const AMFFloatPoint3D* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatPoint3D(AMFVariantStruct* pDest, const AMFFloatPoint3D* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+         if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_FLOAT_POINT3D;
+-            AMFVariantFloatPoint3D(pDest) = *value;
++            AMFVariantFloatPoint3D(pDest) = *pValue;
+         }
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatVector4D(AMFVariantStruct* pDest, const AMFFloatVector4D* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignFloatVector4D(AMFVariantStruct* pDest, const AMFFloatVector4D* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+         if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_FLOAT_VECTOR4D;
+-            AMFVariantFloatVector4D(pDest) = *value;
++            AMFVariantFloatVector4D(pDest) = *pValue;
+         }
+         return errRet;
+     }
+@@ -1848,16 +1860,17 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRate (AMFVariantStruct* pDest, const AMFRate* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRate (AMFVariantStruct* pDest, const AMFRate* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_RATE;
+-            AMFVariantRate(pDest) = *value;
++            AMFVariantRate(pDest) = *pValue;
+         }
+         return errRet;
+     }
+@@ -1869,16 +1882,17 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRatio(AMFVariantStruct* pDest, const AMFRatio* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignRatio(AMFVariantStruct* pDest, const AMFRatio* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_RATIO;
+-            AMFVariantRatio(pDest) = *value;
++            AMFVariantRatio(pDest) = *pValue;
+         }
+         return errRet;
+     }
+@@ -1890,56 +1904,57 @@ namespace amf
+     }
+ #endif
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignColor(AMFVariantStruct* pDest, const AMFColor* value)
++    static AMF_INLINE AMF_RESULT AMF_CDECL_CALL AMFVariantAssignColor(AMFVariantStruct* pDest, const AMFColor* pValue)
+     {
+         AMF_RESULT errRet = AMF_OK;
+         AMF_VARIANT_RETURN_IF_INVALID_POINTER(pDest);
++        AMF_VARIANT_RETURN_IF_INVALID_POINTER(pValue);
+ 
+         errRet = AMFVariantInit(pDest);
+-        if(errRet == AMF_OK)
++        if (errRet == AMF_OK)
+         {
+             pDest->type = AMF_VARIANT_COLOR;
+-            AMFVariantColor(pDest) = *value;
++            AMFVariantColor(pDest) = *pValue;
+         }
+         return errRet;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE char* AMF_CDECL_CALL AMFVariantDuplicateString(const char* from)
++    static AMF_INLINE char* AMF_CDECL_CALL AMFVariantDuplicateString(const char* pFrom)
+     {
+         char* ret = 0;
+-        if(from)
++        if (pFrom)
+         {
+-            ret = (char*)amf_variant_alloc(sizeof(char)*(strlen(from) + 1));
+-            if(ret)
++            ret = (char*)amf_variant_alloc(sizeof(char)*(strlen(pFrom) + 1));
++            if (ret)
+             {
+-                strcpy(ret, from);
++                strcpy(ret, pFrom);
+             }
+         }
+         return ret;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE void AMF_CDECL_CALL AMFVariantFreeString(char* from)
++    static AMF_INLINE void AMF_CDECL_CALL AMFVariantFreeString(char* pFrom)
+     {
+-        amf_variant_free(from);
++        amf_variant_free(pFrom);
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE wchar_t* AMF_CDECL_CALL AMFVariantDuplicateWString(const wchar_t* from)
++    static AMF_INLINE wchar_t* AMF_CDECL_CALL AMFVariantDuplicateWString(const wchar_t* pFrom)
+     {
+         wchar_t* ret = 0;
+-        if(from)
++        if (pFrom)
+         {
+-            ret = (wchar_t*)amf_variant_alloc(sizeof(wchar_t)*(wcslen(from) + 1));
+-            if(ret)
++            ret = (wchar_t*)amf_variant_alloc(sizeof(wchar_t)*(wcslen(pFrom) + 1));
++            if (ret)
+             {
+-                wcscpy(ret, from);
++                wcscpy(ret, pFrom);
+             }
+         }
+         return ret;
+     }
+     //-------------------------------------------------------------------------------------------------
+-    static AMF_INLINE void AMF_CDECL_CALL AMFVariantFreeWString(wchar_t* from)
++    static AMF_INLINE void AMF_CDECL_CALL AMFVariantFreeWString(wchar_t* pFrom)
+     {
+-        amf_variant_free(from);
++        amf_variant_free(pFrom);
+     }
+     //----------------------------------------------------------------------------------------------
+     // AMF_INLINE implementation of AMFVariant class
+@@ -1948,7 +1963,7 @@ namespace amf
+     AMF_INLINE AMFVariant::AMFVariant(const AMFVariantStruct* pOther)
+     {
+         AMFVariantInit(this);
+-        if(pOther != NULL)
++        if (pOther != nullptr)
+         {
+             AMFVariantCopy(this, const_cast<AMFVariantStruct*>(pOther));
+         }
+@@ -1965,7 +1980,7 @@ namespace amf
+     ReturnType AMFVariant::GetValue(Getter getter) const
+     {
+         ReturnType str = ReturnType();
+-        if(AMFVariantGetType(this) == variantType)
++        if (AMFVariantGetType(this) == variantType)
+         {
+             str = static_cast<ReturnType>(getter(this));
+         }
+@@ -1973,7 +1988,7 @@ namespace amf
+         {
+             AMFVariant varDest;
+             varDest.ChangeType(variantType, this);
+-            if(varDest.type != AMF_VARIANT_EMPTY)
++            if (varDest.type != AMF_VARIANT_EMPTY)
+             {
+                 str = static_cast<ReturnType>(getter(&varDest));
+             }
+@@ -1990,7 +2005,7 @@ namespace amf
+     //-------------------------------------------------------------------------------------------------
+     AMF_INLINE AMFVariant& AMFVariant::operator=(const AMFVariantStruct* pOther)
+     {
+-        if(pOther != NULL)
++        if (pOther != nullptr)
+         {
+             AMFVariantClear(this);
+             AMFVariantCopy(this, const_cast<AMFVariantStruct*>(pOther));
+@@ -2023,7 +2038,7 @@ namespace amf
+     {
+         //TODO: double check
+         amf_bool ret = false;
+-        if(pOther == NULL)
++        if (pOther == nullptr)
+         {
+             ret = false;
+         }
+@@ -2044,11 +2059,11 @@ namespace amf
+         return !(*this == pOther);
+     }
+     //-------------------------------------------------------------------------------------------------
+-    AMF_INLINE void AMFVariant::Attach(AMFVariantStruct& variant)
++    AMF_INLINE void AMFVariant::Attach(AMFVariantStruct& pVariant)
+     {
+         Clear();
+-        memcpy(this, &variant, sizeof(variant));
+-        AMFVariantGetType(&variant) = AMF_VARIANT_EMPTY;
++        memcpy(static_cast<void*>(this), &pVariant, sizeof(pVariant));
++        AMFVariantGetType(&pVariant) = AMF_VARIANT_EMPTY;
+     }
+     //-------------------------------------------------------------------------------------------------
+     AMF_INLINE AMFVariantStruct AMFVariant::Detach()
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Version.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Version.h
+index 102587bb66..a4a1b5a77f 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Version.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/Version.h
+@@ -51,7 +51,7 @@
+ 
+ #define AMF_VERSION_MAJOR       1
+ #define AMF_VERSION_MINOR       4
+-#define AMF_VERSION_RELEASE     29
++#define AMF_VERSION_RELEASE     35
+ #define AMF_VERSION_BUILD_NUM   0
+ 
+ #define AMF_FULL_VERSION AMF_MAKE_FULL_VERSION(AMF_VERSION_MAJOR, AMF_VERSION_MINOR, AMF_VERSION_RELEASE, AMF_VERSION_BUILD_NUM)
+diff --git a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/VulkanAMF.h b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/VulkanAMF.h
+index 188e36c703..5813ae8ac9 100644
+--- a/subprojects/gst-plugins-bad/sys/amfcodec/include/core/VulkanAMF.h
++++ b/subprojects/gst-plugins-bad/sys/amfcodec/include/core/VulkanAMF.h
+@@ -55,7 +55,7 @@ namespace amf
+         amf_size            cbSizeof;           // sizeof(AMFVulkanSync)
+         void*               pNext;              // reserved for extensions
+         VkSemaphore         hSemaphore;         // VkSemaphore; can be nullptr
+-        bool                bSubmitted;         // if true - wait for hSemaphore. re-submit hSemaphore if not synced by other ways and set to true
++        amf_bool            bSubmitted;         // if true - wait for hSemaphore. re-submit hSemaphore if not synced by other ways and set to true
+         VkFence             hFence;             // To sync on CPU; can be nullptr. Submitted in vkQueueSubmit. If waited for hFence, null it, do not delete or reset.
+     } AMFVulkanSync;
+ 
+@@ -90,6 +90,14 @@ namespace amf
+         AMFVulkanSync       Sync;               // To sync on GPU
+     } AMFVulkanSurface;
+ 
++    typedef struct AMFVulkanSurface1
++    {
++        amf_size            cbSizeof;           // sizeof(AMFVulkanSurface)
++        void*               pNext;              // reserved for extensions
++        // surface properties
++        amf_uint32          eTiling;            // VkImageTiling
++    } AMFVulkanSurface1;
++
+     typedef struct AMFVulkanView
+     {
+         amf_size            cbSizeof;           // sizeof(AMFVulkanView)

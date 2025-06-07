@@ -40,6 +40,8 @@ static state::Encoder encoder_type(const GstEncoder &settings) {
     return VAAPI;
   case (utils::hash("qsv")):
     return QUICKSYNC;
+  case (utils::hash("amfcodec")):
+    return AMF;
   case (utils::hash("applemedia")):
     return APPLE;
   case (utils::hash("x264")):
@@ -64,6 +66,8 @@ static bool is_available(const GPU_VENDOR &gpu_vendor, const GstEncoder &setting
           auto encoder_vendor = encoder_type(settings);
           if (encoder_vendor == NVIDIA && gpu_vendor != GPU_VENDOR::NVIDIA) {
             logs::log(logs::debug, "Skipping NVIDIA encoder, not a NVIDIA GPU ({})", (int)gpu_vendor);
+          } else if (encoder_vendor == AMF && gpu_vendor != GPU_VENDOR::AMD) {
+            logs::log(logs::debug, "Skipping AMF encoder, not an AMF GPU ({})", (int)gpu_vendor);
           } else if (encoder_vendor == VAAPI && (gpu_vendor != GPU_VENDOR::INTEL && gpu_vendor != GPU_VENDOR::AMD)) {
             logs::log(logs::debug, "Skipping VAAPI encoder, not an Intel or AMD GPU ({})", (int)gpu_vendor);
           } else if (encoder_vendor == QUICKSYNC && gpu_vendor != GPU_VENDOR::INTEL) {
@@ -132,7 +136,12 @@ Config load_or_default(const std::string &source,
   if (default_gst_video_settings.default_source.find("appsrc") != std::string::npos) {
     logs::log(logs::debug, "Found appsrc in default_source, migrating to interpipesrc");
     default_gst_video_settings.default_source = "interpipesrc listen-to={session_id}_video is-live=true "
-                                                "stream-sync=restart-ts max-buffers=1 block=false";
+                                                "stream-sync=restart-ts max-buffers=5 block=false";
+  }
+  if (default_gst_video_settings.default_source.find("max-buffers=1 ") != std::string::npos) {
+    logs::log(logs::debug, "Found too small buffer count in default_source, migrating");
+    default_gst_video_settings.default_source = "interpipesrc listen-to={session_id}_video is-live=true "
+                                                "stream-sync=restart-ts max-buffers=5 block=false";
   }
   if (default_gst_video_settings.default_sink.find("udpsink") != std::string::npos) {
     logs::log(logs::debug, "Found udpsink in default_sink, migrating to appsink");
@@ -160,7 +169,7 @@ Config load_or_default(const std::string &source,
   auto update_leaky_queue = [](std::string &pipeline) {
     std::string old_str = "queue";
     auto replace_pos = pipeline.find(old_str);
-    pipeline.replace(replace_pos, old_str.size(), "queue leaky=downstream max-size-buffers=1 ");
+    pipeline.replace(replace_pos, old_str.size(), "queue leaky=downstream max-size-buffers=5 ");
   };
   if (default_gst_encoder_settings["nvcodec"].video_params.find("queue !") != std::string::npos) {
     logs::log(logs::debug, "Found leaky queue in nvcodec, migrating to queue leaky=downstream");
@@ -172,6 +181,24 @@ Config load_or_default(const std::string &source,
   }
   if (default_gst_encoder_settings["qsv"].video_params.find("queue !") != std::string::npos) {
     logs::log(logs::debug, "Found leaky queue in qsv, migrating to queue leaky=downstream");
+    update_leaky_queue(default_gst_encoder_settings["qsv"].video_params);
+  }
+
+  auto update_buffer_count = [](std::string &pipeline) {
+    std::string old_str = "max-size-buffers=1 ";
+    auto replace_pos = pipeline.find(old_str);
+    pipeline.replace(replace_pos, old_str.size(), "max-size-buffers=5 ");
+  };
+  if (default_gst_encoder_settings["nvcodec"].video_params.find("max-size-buffers=1 ") != std::string::npos) {
+    logs::log(logs::debug, "Found small queue in nvcodec, migrating to max-size-buffers=5");
+    update_leaky_queue(default_gst_encoder_settings["nvcodec"].video_params);
+  }
+  if (default_gst_encoder_settings["vaapi"].video_params.find("max-size-buffers=1 ") != std::string::npos) {
+    logs::log(logs::debug, "Found small queue in vaapi, migrating to max-size-buffers=5");
+    update_leaky_queue(default_gst_encoder_settings["vaapi"].video_params);
+  }
+  if (default_gst_encoder_settings["qsv"].video_params.find("max-size-buffers=1 ") != std::string::npos) {
+    logs::log(logs::debug, "Found small queue in qsv, migrating to max-size-buffers=5");
     update_leaky_queue(default_gst_encoder_settings["qsv"].video_params);
   }
 

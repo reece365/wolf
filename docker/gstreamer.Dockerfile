@@ -28,6 +28,8 @@ Provides: gstreamer, libgstreamer1.0-0
 Description: Manually built from git
 EOT
 
+COPY docker/gstreamer/*.patch $SOURCE_PATH/
+
 RUN <<_GSTREAMER_INSTALL
     #!/bin/bash
     set -e
@@ -39,7 +41,7 @@ RUN <<_GSTREAMER_INSTALL
         libmfx-dev libvpl-dev libmfx-tools libunwind8 libcap2-bin \
         libx11-dev libxfixes-dev libxdamage-dev libwayland-dev libpulse-dev libglib2.0-dev \
         libopenjp2-7-dev liblcms2-dev libcairo2-dev libcairo-gobject2 libwebp7 librsvg2-dev libaom-dev \
-        libharfbuzz-dev libpango1.0-dev
+        libharfbuzz-dev libpango1.0-dev libudev-dev curl
         "
     apt-get update -y
     apt-get install -y --no-install-recommends $DEV_PACKAGES
@@ -48,6 +50,10 @@ RUN <<_GSTREAMER_INSTALL
     git clone https://gitlab.freedesktop.org/gstreamer/gstreamer.git $SOURCE_PATH/gstreamer
     cd ${SOURCE_PATH}/gstreamer
     git checkout $GSTREAMER_SHA_COMMIT
+    patch -Np1 -i $SOURCE_PATH/gst-mr-8269.patch
+    patch -Np1 -i $SOURCE_PATH/gst-amf-headers.patch
+    patch -Np1 -i $SOURCE_PATH/gst-amf-av1-usage.patch
+    patch -Np1 -i $SOURCE_PATH/gst-amf-linux.patch
     git submodule update --recursive --remote
     # see the list of possible options here: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/blob/main/meson_options.txt \
     meson setup \
@@ -77,6 +83,7 @@ RUN <<_GSTREAMER_INSTALL
         -Dgst-plugins-bad:qsv=enabled \
         -Dgst-plugins-bad:aom=enabled \
         -Dgst-plugin-bad:nvcodec=enabled  \
+        -Dgst-plugins-bad:amfcodec=enabled \
         -Dvaapi=enabled \
         build
     meson compile -C build
